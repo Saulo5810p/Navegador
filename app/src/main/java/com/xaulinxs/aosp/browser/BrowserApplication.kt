@@ -3,6 +3,7 @@ package com.xaulinxs.aosp.browser
 import android.app.Application
 import java.io.File
 import com.norman.webviewup.lib.WebViewUpgrade
+import com.norman.webviewup.lib.util.ProcessUtils
 import com.norman.webviewup.lib.source.UpgradeAssetSource
 
 /**
@@ -20,6 +21,15 @@ class BrowserApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // WebViewUpgrade.upgrade() so pode rodar no processo principal.
+        // Application.onCreate() roda de novo em cada processo sandbox
+        // (":sandboxed_process0" etc.) que a propria lib cria durante a
+        // verificacao (checkWebView) - sem essa guarda, o upgrade reentra
+        // recursivamente nesses processos e deixa o provider inconsistente
+        // bem na hora em que a MainActivity real cria sua WebView.
+        if (!ProcessUtils.isMainProcess(this)) {
+            return
+        }
         try {
             // Usamos o construtor de 3 parâmetros (Context, assetName, File
             // de destino) apontando manualmente pro armazenamento privado
