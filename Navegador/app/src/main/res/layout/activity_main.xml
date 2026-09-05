@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Barra de ferramentas pura (sem drawables customizados) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/toolbar_bg"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="&lt;" />
+
+        <EditText
+            android:id="@+id/urlInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:hint="Digite a URL aqui..."
+            android:inputType="textUri"
+            android:imeOptions="actionGo"
+            android:singleLine="true" />
+
+        <Button
+            android:id="@+id/btnGo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ir" />
+    </LinearLayout>
+
+    <!-- Placeholder: NENHUMA WebView é criada aqui. Ela só é instanciada
+         programaticamente em MainActivity depois que o WebViewUpgrade
+         terminar - criar a WebView cedo demais trava o provider no
+         WebView do sistema antes da troca acontecer. -->
+    <FrameLayout
+        android:id="@+id/webViewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Barra estilo QSB do AOSP, só para exibir o kernel/versão real em uso -->
+    <TextView
+        android:id="@+id/kernelInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/qsb_bar_bg"
+        android:textColor="@color/qsb_bar_text"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:padding="8dp"
+        android:singleLine="true"
+        android:text="Carregando kernel AOSP..." />
+
+</LinearLayout>
