@@ -1,0 +1,10 @@
+Copie aqui o arquivo do WebView AOSP (Android 14, build 113.0.5672.136
+- UP1A.231005.007.10754064) renomeado exatamente para:
+
+    aosp_webview.apk
+
+Caminho completo esperado:
+    app/src/main/assets/aosp_webview.apk
+
+Depois de copiar, pode apagar este arquivo LEIA-ME.txt (ele só existe
+para o Git não descartar a pasta assets vazia).

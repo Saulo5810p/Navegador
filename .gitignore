@@ -1,0 +1,18 @@
+# Android build
+app/build/
+
+# APKs incluídos como assets
+app/src/main/assets/*.apk
+
+# Git
+.git/
+
+# Gradle
+.gradle/
+
+# Local Android SDK configuration
+local.properties
+
+# IDE
+.idea/
+*.iml

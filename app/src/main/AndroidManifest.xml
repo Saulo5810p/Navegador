@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:name=".BrowserApplication"
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.AospBrowser"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Services de processo sandbox usados pela lib WebViewUpgrade
+            (com.norman.webviewup) para o modo multiprocesso do Chromium.
+            Antes vinham automaticamente via merge do AAR do Maven Central;
+            como agora o código-fonte da lib foi vendorizado direto no
+            projeto, precisam ser declarados aqui manualmente.
+        -->
+        <service
+            android:name="com.norman.webviewup.lib.sandbox.stub.StubSandboxedProcessService0"
+            android:exported="false"
+            android:process=":sandboxed_process0" />
+        <service
+            android:name="com.norman.webviewup.lib.sandbox.stub.StubSandboxedProcessService1"
+            android:exported="false"
+            android:process=":sandboxed_process1" />
+        <service
+            android:name="com.norman.webviewup.lib.sandbox.stub.StubSandboxedProcessService2"
+            android:exported="false"
+            android:process=":sandboxed_process2" />
+        <service
+            android:name="com.norman.webviewup.lib.sandbox.stub.StubSandboxedProcessService3"
+            android:exported="false"
+            android:process=":sandboxed_process3" />
+        <service
+            android:name="com.norman.webviewup.lib.sandbox.stub.StubSandboxedProcessService4"
+            android:exported="false"
+            android:process=":sandboxed_process4" />
+    </application>
+</manifest>
