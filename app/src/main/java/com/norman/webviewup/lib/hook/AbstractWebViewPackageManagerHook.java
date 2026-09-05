@@ -246,6 +246,21 @@ abstract class AbstractWebViewPackageManagerHook extends BinderHook {
         packageInfo.applicationInfo.publicSourceDir = apkPath;
         packageInfo.applicationInfo.flags |= ApplicationInfo.FLAG_INSTALLED
                 | ApplicationInfo.FLAG_HAS_CODE;
+        // dataDir nulo faz LoadedApk.canAccessDataDir() (chamada por
+        // createPackageContext, usada pelo SandboxedProcessServiceDelegate no
+        // processo renderer sandbox) estourar NullPointerException em
+        // "new File(mApplicationInfo.dataDir)". Sem createPackageContext bem
+        // sucedido, o delegate cai no fallback degradado que nao consegue
+        // achar assets/icudtl.dat, e o renderer trava com SIGTRAP
+        // ("Invalid file descriptor to ICU data received"). Como esse
+        // "pacote" fake roda sob o mesmo processo/uid do app host,
+        // reaproveitamos o dataDir real do host, que sempre existe e e
+        // acessivel.
+        String hostDataDir = context.getApplicationInfo().dataDir;
+        if (!TextUtils.isEmpty(hostDataDir)) {
+            packageInfo.applicationInfo.dataDir = hostDataDir;
+            packageInfo.applicationInfo.deviceProtectedDataDir = hostDataDir;
+        }
 
         cachedWebViewAppInfo = packageInfo.applicationInfo;
     }
