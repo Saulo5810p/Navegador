@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- com.xaulinxs.funcoes — upload/download/file manager -->
+    <string name="funcoes_download_started">Download iniciado: %1$s</string>
+    <string name="funcoes_download_description">XaulinXs AOSP Browser</string>
+    <string name="funcoes_open_failed">Nenhum app instalado consegue abrir esse arquivo</string>
+
+    <string name="funcoes_file_manager_up">Voltar uma pasta</string>
+    <string name="file_manager_permission_title">Acesso ao armazenamento</string>
+    <string name="file_manager_permission_msg">Pra navegar livremente pela memória interna, o app precisa da permissão \"Acesso a todos os arquivos\". Sem ela, só é possível navegar na pasta privada do app.</string>
+    <string name="file_manager_permission_grant">Conceder</string>
+    <string name="file_manager_permission_deny">Continuar sem</string>
+    <string name="file_manager_action_open">Abrir</string>
+    <string name="file_manager_action_upload">Enviar para o site</string>
+    <string name="file_manager_action_delete">Excluir</string>
+    <string name="file_manager_invalid">Arquivo inválido</string>
+    <string name="file_manager_deleted">Arquivo excluído</string>
+    <string name="file_manager_delete_confirm">Excluir \"%1$s\"? Essa ação não pode ser desfeita.</string>
+    <string name="file_manager_open_failed">Nenhum app instalado consegue abrir esse arquivo</string>
+    <string name="funcoes_no_pending_upload">Nenhum site está esperando um arquivo agora</string>
+
+    <!-- com.xaulinxs.funcoes.download — Foreground Service de downloads -->
+    <string name="download_generic_file">Arquivo</string>
+    <string name="download_channel_name">Downloads</string>
+    <string name="download_channel_description">Progresso dos downloads feitos pelo navegador</string>
+    <string name="download_status_running">Baixando…</string>
+    <string name="download_status_completed">Download concluído</string>
+    <string name="download_paused_waiting_wifi">Pausado: aguardando Wi-Fi</string>
+    <string name="download_paused_waiting_network">Pausado: aguardando conexão de rede</string>
+    <string name="download_paused_waiting_retry">Pausado: tentando novamente em breve</string>
+    <string name="download_paused_unknown">Pausado</string>
+    <string name="download_error_generic">Falha no download</string>
+    <string name="download_error_insufficient_space">Falha: espaço insuficiente no dispositivo</string>
+    <string name="download_error_device_not_found">Falha: armazenamento externo não encontrado</string>
+    <string name="download_error_cannot_resume">Falha: não foi possível retomar o download</string>
+    <string name="download_error_http">Falha: erro de rede ao baixar o arquivo</string>
+</resources>

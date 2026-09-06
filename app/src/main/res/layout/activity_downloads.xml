@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/settings_downloads"
+        android:textSize="18sp"
+        android:padding="16dp" />
+
+    <ListView
+        android:id="@+id/downloadsList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/emptyLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/downloads_empty"
+        android:gravity="center"
+        android:textColor="#9E9E9E"
+        android:padding="24dp"
+        android:visibility="gone" />
+
+</LinearLayout>

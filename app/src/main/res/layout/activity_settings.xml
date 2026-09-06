@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_title"
+            android:textSize="20sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_search_engine"
+            android:textSize="15sp"
+            android:textColor="#616161"
+            android:layout_marginBottom="4dp" />
+
+        <RadioGroup
+            android:id="@+id/searchEngineGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnAddSearchEngine"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_add_search_engine"
+            android:layout_marginBottom="24dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Item de menu: lista de Downloads (o que faltava para o
+             usuário conseguir ver/abrir/excluir arquivos baixados pelo
+             DownloadManager) -->
+        <TextView
+            android:id="@+id/menuDownloads"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_downloads"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <!-- Item de menu: File Manager em modo livre (MODE_BROWSE) -->
+        <TextView
+            android:id="@+id/menuFileManager"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_file_manager"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Item de menu: abre a tela do sistema pra definir o app como
+             navegador padrão (Configurações > Apps padrão > Navegador). -->
+        <TextView
+            android:id="@+id/menuDefaultBrowser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_default_browser"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+    </LinearLayout>
+</ScrollView>

@@ -1,8 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Upload/download/file manager (com.xaulinxs.funcoes) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Necessária pro file manager próprio navegar livremente pela memória
+         interna inteira (não só a pasta privada do app) a partir do Android 11.
+         É uma permissão especial: o usuário precisa conceder manualmente numa
+         tela do sistema (tratado em FileManagerActivity.resolveRootAndOpen). -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+
+    <!-- Foreground Service de download com notificação de progresso real -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Tipo específico exigido a partir do Android 14 (API 34) para
+         serviços de sincronização/transferência de dados em segundo
+         plano - sem isso, startForeground() com esse tipo lança
+         SecurityException no Android 14+. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Obrigatória a partir do Android 13 (API 33) para qualquer
+         notificação exibida pelo app, incluindo a de progresso do
+         download - sem ela, a notificação simplesmente não aparece
+         (o Foreground Service continua rodando normalmente). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".BrowserApplication"
@@ -14,12 +41,65 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+                Intent-filter que faz o app aparecer na lista de
+                "Navegador padrão" do Android (Configurações > Apps >
+                Apps padrão > Navegador) e no seletor "Abrir com" quando
+                outro app manda abrir um link http(s). BROWSABLE é
+                obrigatório: sem ela, o sistema não considera o app um
+                navegador válido para esse papel. android:autoVerify
+                habilita App Links (verificação de domínio via
+                assetlinks.json) quando aplicável - sem um domínio
+                próprio verificado, o Android ainda mostra o app no
+                seletor manual de navegador padrão normalmente.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/settings_title"
+            android:exported="false" />
+
+        <activity
+            android:name=".DownloadsActivity"
+            android:label="@string/settings_downloads"
+            android:exported="false" />
+
+        <activity
+            android:name="com.xaulinxs.funcoes.FileManagerActivity"
+            android:label="File Manager"
+            android:exported="false" />
+
+        <!-- Foreground Service que monitora o progresso de um download e
+             mantém a notificação persistente atualizada em tempo real. -->
+        <service
+            android:name="com.xaulinxs.funcoes.download.DownloadForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!--
             Services de processo sandbox usados pela lib WebViewUpgrade
