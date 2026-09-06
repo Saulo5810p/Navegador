@@ -13,7 +13,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
 import com.xaulinxs.aosp.browser.R
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -222,10 +224,39 @@ class DownloadForegroundService : Service() {
             .build()
     }
 
+    /**
+     * COLUMN_LOCAL_URI do DownloadManager costuma vir como file:// (ex:
+     * "file:///storage/emulated/0/Download/arquivo.apk"). Desde o Android 7
+     * (API 24), expor um file:// em um Intent para outro app/processo lanca
+     * FileUriExposedException (StrictMode) - inclusive dentro de um
+     * PendingIntent guardado numa notificacao, que so "explode" quando o
+     * usuario toca nela. E obrigatorio converter para content:// via
+     * FileProvider (ja declarado no manifest com o mesmo authority/paths
+     * usados pelo FileManagerActivity) antes de montar o Intent.
+     */
+    private fun resolveShareableUri(localUri: String): Uri? {
+        val parsed = Uri.parse(localUri)
+        return if (parsed.scheme == "file") {
+            val file = parsed.path?.let { File(it) } ?: return null
+            try {
+                FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            } catch (e: IllegalArgumentException) {
+                // Caminho fora dos <paths> declarados em file_paths.xml -
+                // nao ha como gerar content:// para ele; melhor nao abrir
+                // nada do que crashar de novo.
+                null
+            }
+        } else {
+            // Ja e content:// (ou outro esquema seguro) - usa como esta.
+            parsed
+        }
+    }
+
     private fun buildFinishedNotification(fileName: String, success: Boolean, localUri: String?): Notification {
-        val openIntent = if (success && localUri != null) {
+        val shareableUri = localUri?.let { resolveShareableUri(it) }
+        val openIntent = if (success && shareableUri != null) {
             Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.parse(localUri), "*/*")
+                setDataAndType(shareableUri, "*/*")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             }
         } else null
