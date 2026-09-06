@@ -57,7 +57,7 @@ class MainActivity : Activity() {
     private lateinit var homeLayout: LinearLayout
     private lateinit var navToolbar: LinearLayout
     private lateinit var searchInput: EditText
-    private lateinit var currentUrl: TextView
+    private lateinit var urlEditText: EditText
     private lateinit var btnBack: Button
     private lateinit var btnHome: Button
     private lateinit var kernelInfo: TextView
@@ -70,7 +70,7 @@ class MainActivity : Activity() {
     // não existir quando o intent chega em onCreate()/onNewIntent().
     private var pendingExternalUrl: String? = null
 
-    private val chromeVersionRegex = Regex("Chrome/([0-9.]+)")
+    private val webViewVersionRegex = Regex("Chrome/([0-9.]+)")
 
     companion object {
         private const val REQUEST_CODE_FILE_CHOOSER = 100
@@ -106,7 +106,7 @@ class MainActivity : Activity() {
         homeLayout = findViewById(R.id.homeLayout)
         navToolbar = findViewById(R.id.navToolbar)
         searchInput = findViewById(R.id.searchInput)
-        currentUrl = findViewById(R.id.currentUrl)
+        urlEditText = findViewById(R.id.urlEditText)
         btnBack = findViewById(R.id.btnBack)
         btnHome = findViewById(R.id.btnHome)
         kernelInfo = findViewById(R.id.kernelInfo)
@@ -134,6 +134,22 @@ class MainActivity : Activity() {
             val isEnter = event != null && event.keyCode == KeyEvent.KEYCODE_ENTER
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO || isEnter) {
                 submitQuery(searchInput.text.toString().trim())
+                true
+            } else {
+                false
+            }
+        }
+
+        // Barra de URL da toolbar de navegação: agora é sempre editável -
+        // tocar nela permite digitar/alterar a URL a qualquer momento
+        // (antes era um TextView que só exibia a URL atual e não
+        // aceitava edição nenhuma). Confirmar com Enter/Ir navega pra
+        // URL digitada, usando a mesma lógica de detecção de domínio vs.
+        // busca do campo da Home.
+        urlEditText.setOnEditorActionListener { _, actionId, event ->
+            val isEnter = event != null && event.keyCode == KeyEvent.KEYCODE_ENTER
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO || isEnter) {
+                submitQuery(urlEditText.text.toString().trim())
                 true
             } else {
                 false
@@ -271,7 +287,13 @@ class MainActivity : Activity() {
         newWebView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                currentUrl.text = url ?: ""
+                // Só atualiza o texto da barra de URL se o usuário não
+                // estiver com o foco nela (editando) - evita sobrescrever
+                // o que ele está digitando caso a página termine de
+                // carregar nesse meio-tempo.
+                if (!urlEditText.hasFocus()) {
+                    urlEditText.setText(url ?: "")
+                }
             }
         }
 
@@ -332,11 +354,11 @@ class MainActivity : Activity() {
 
     private fun updateKernelInfo() {
         val userAgent = WebSettings.getDefaultUserAgent(this)
-        val chromeVersion = chromeVersionRegex.find(userAgent)?.groupValues?.get(1) ?: "desconhecida"
+        val webViewVersion = webViewVersionRegex.find(userAgent)?.groupValues?.get(1) ?: "desconhecida"
         val packageName = WebViewUpgrade.getUpgradeWebViewPackageName()
             ?: WebViewUpgrade.getSystemWebViewPackageName()
             ?: "desconhecido"
-        kernelInfo.text = "WebView Chrome/$chromeVersion  •  $packageName"
+        kernelInfo.text = getString(R.string.kernel_info_format, webViewVersion, packageName)
     }
 
     override fun onDestroy() {

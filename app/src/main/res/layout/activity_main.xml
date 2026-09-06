@@ -2,38 +2,36 @@
 <!--
     Nova estrutura da tela principal, estilo Chromium:
 
-    - rootContainer: FrameLayout raiz. A WebView e injetada aqui por
-      codigo (nunca no XML - ver comentario em MainActivity.initWebView()),
-      ocupando a tela inteira quando ha navegacao em andamento.
-    - homeLayout: camada de "nova aba" (logo + busca grande), visivel por
-      cima da WebView quando nao ha navegacao ativa. Some assim que uma
-      URL/busca e confirmada; volta quando o historico de navegacao acaba.
-    - navToolbar: barra fina de navegacao (voltar + barra de URL truncada),
-      so visivel durante a navegacao (escondida na Home).
+    - rootContainer: LinearLayout vertical raiz. navToolbar ocupa seu
+      proprio espaco fixo no topo (nao sobrepoe mais nada); o restante da
+      altura (contentArea) e dividido entre a WebView e a Home.
+    - contentArea: FrameLayout que contem webViewContainer (WebView
+      injetada por codigo) e homeLayout empilhados - so um dos dois fica
+      visivel por vez, dentro do espaco que sobra abaixo da navToolbar.
+    - navToolbar: barra fina de navegacao (voltar + campo de URL
+      editavel), so visivel durante a navegacao (escondida na Home). Fica
+      no topo do LinearLayout, entao a WebView nunca reserva espaco por
+      baixo dela - resolve a barra cobrindo o conteudo do site.
     - bottomBar: barra retangular com gradiente, sempre visivel, abre a
       SettingsActivity ao ser tocada.
 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFFFF">
+    android:orientation="vertical"
+    android:background="?android:attr/colorBackground">
 
-    <!-- WebView e injetada aqui via addView() em codigo -->
-    <FrameLayout
-        android:id="@+id/webViewContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- Barra fina de navegacao (voltar + URL atual), so visivel quando
-         a WebView esta em uso (fora da Home) -->
+    <!-- Barra fina de navegacao (voltar + campo de URL editavel), so
+         visivel quando a WebView esta em uso (fora da Home). O campo de
+         URL agora e um EditText de verdade - tocar nele permite digitar
+         uma nova URL, em vez de so mostrar/recarregar a atual. -->
     <LinearLayout
         android:id="@+id/navToolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
         android:orientation="horizontal"
-        android:background="@color/toolbar_bg"
+        android:background="?android:attr/colorBackground"
         android:padding="8dp"
         android:gravity="center_vertical"
         android:visibility="gone">
@@ -51,14 +49,15 @@
             android:layout_marginStart="4dp"
             android:text="&#8962;" />
 
-        <TextView
-            android:id="@+id/currentUrl"
+        <EditText
+            android:id="@+id/urlEditText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:singleLine="true"
-            android:ellipsize="middle"
+            android:inputType="textUri"
+            android:imeOptions="actionGo"
             android:textSize="13sp" />
 
         <!-- Alternador Desktop/Mobile, padrão em qualquer navegador
@@ -73,65 +72,82 @@
             android:text="@string/desktop_mode_button_desktop" />
     </LinearLayout>
 
-    <!-- Camada Home: logo + busca grande, estilo nova-aba do Chrome -->
-    <LinearLayout
-        android:id="@+id/homeLayout"
+    <!-- Area de conteudo: fica com todo o espaco que sobra abaixo da
+         navToolbar (e acima da bottomBar). WebView e Home se empilham
+         aqui, nunca por baixo da toolbar. -->
+    <FrameLayout
+        android:id="@+id/contentArea"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="#FFFFFFFF"
-        android:padding="32dp">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <TextView
-            android:id="@+id/homeTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textSize="22sp"
-            android:textColor="#424242"
-            android:layout_marginBottom="24dp" />
-
-        <LinearLayout
+        <!-- WebView e injetada aqui via addView() em codigo -->
+        <FrameLayout
+            android:id="@+id/webViewContainer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/bg_search_field"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp">
+            android:layout_height="match_parent" />
 
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_search"
-                android:contentDescription="@string/search_icon_description" />
+        <!-- Camada Home: logo + busca grande, estilo nova-aba do Chrome -->
+        <LinearLayout
+            android:id="@+id/homeLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?android:attr/colorBackground"
+            android:padding="32dp">
 
-            <EditText
-                android:id="@+id/searchInput"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/homeTitle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:background="@null"
-                android:hint="@string/search_hint"
-                android:inputType="text"
-                android:imeOptions="actionGo"
-                android:singleLine="true"
-                android:textSize="16sp" />
+                android:text="@string/app_name"
+                android:textSize="22sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="24dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_search_field"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_search"
+                    android:contentDescription="@string/search_icon_description" />
+
+                <EditText
+                    android:id="@+id/searchInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:background="@null"
+                    android:hint="@string/search_hint"
+                    android:inputType="text"
+                    android:imeOptions="actionGo"
+                    android:singleLine="true"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/kernelInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textColor="#9E9E9E"
+                android:textSize="11sp"
+                android:text="@string/kernel_loading" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/kernelInfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:textColor="#9E9E9E"
-            android:textSize="11sp"
-            android:text="@string/kernel_loading" />
-    </LinearLayout>
+    </FrameLayout>
 
     <!-- Barra retangular inferior com gradiente, sempre visivel - abre
          SettingsActivity ao ser tocada -->
@@ -139,7 +155,6 @@
         android:id="@+id/bottomBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
         android:layout_margin="12dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
@@ -157,8 +172,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/bottom_bar_settings"
-            android:textColor="#212121"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="13sp" />
     </LinearLayout>
 
-</FrameLayout>
+</LinearLayout>

@@ -1,7 +1,17 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Trocado de Theme.AppCompat.DayNight.NoActionBar para o tema puro
-         do framework, conforme a diretriz de não usar Material/AppCompat.
-         android:Theme.Light.NoTitleBar já traz EditText/Button/Spinner com
-         o visual "cru" do sistema, sem depender de nenhuma lib externa. -->
-    <style name="Theme.AospBrowser" parent="android:Theme.Light.NoTitleBar" />
+    <!-- Versão CLARA (values/, usada quando o modo é claro ou "sistema"
+         com o dispositivo em claro): Theme.DeviceDefault.Light.NoActionBar
+         é a variante clara real do tema do dispositivo/Android 14.
+
+         "Theme.DeviceDefault.DayNight" NÃO existe como estilo público do
+         framework (só Theme.Material tem a variante DayNight embutida) -
+         era isso que quebrava o build com "resource ... not found". Sem
+         AppCompat, o DayNight é feito à moda antiga do Android: o MESMO
+         nome de tema (Theme.AospBrowser) é declarado aqui com base clara
+         e de novo em values-night/themes.xml com base escura
+         (Theme.DeviceDefault.NoActionBar) - o sistema de recursos escolhe
+         automaticamente qual das duas versões usar conforme o modo
+         claro/escuro atual (ver ThemeManager, que troca esse modo via
+         UiModeManager.setApplicationNightMode). -->
+    <style name="Theme.AospBrowser" parent="android:Theme.DeviceDefault.Light.NoActionBar" />
 </resources>

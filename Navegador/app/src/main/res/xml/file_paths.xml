@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- external-path cobre o armazenamento compartilhado inteiro (o que se
-     navega no file manager), files-path cobre a pasta interna do app. -->
-<paths>
-    <external-path name="external_storage" path="." />
-    <files-path name="internal_files" path="." />
-</paths>

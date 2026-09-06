@@ -17,6 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.xaulinxs.funcoes.FileManagerActivity
 import com.xaulinxs.funcoes.SearchEngineManager
+import com.xaulinxs.funcoes.ThemeManager
 
 /**
  * Tela de configurações: lista de motores de busca (fixos + customizados),
@@ -48,7 +49,31 @@ class SettingsActivity : Activity() {
             requestDefaultBrowserRole()
         }
 
+        setupThemeSelector()
         renderSearchEngines()
+    }
+
+    private fun setupThemeSelector() {
+        val themeGroup = findViewById<RadioGroup>(R.id.themeGroup)
+        val themeSystem = findViewById<RadioButton>(R.id.themeSystem)
+        val themeLight = findViewById<RadioButton>(R.id.themeLight)
+        val themeDark = findViewById<RadioButton>(R.id.themeDark)
+
+        when (ThemeManager.getThemeMode(this)) {
+            ThemeManager.MODE_LIGHT -> themeLight.isChecked = true
+            ThemeManager.MODE_DARK -> themeDark.isChecked = true
+            else -> themeSystem.isChecked = true
+        }
+
+        themeGroup.setOnCheckedChangeListener { _, checkedId ->
+            val mode = when (checkedId) {
+                R.id.themeLight -> ThemeManager.MODE_LIGHT
+                R.id.themeDark -> ThemeManager.MODE_DARK
+                else -> ThemeManager.MODE_SYSTEM
+            }
+            ThemeManager.setThemeMode(this, mode)
+            recreate()
+        }
     }
 
     companion object {

@@ -3,6 +3,7 @@
     <string name="search_hint">Pesquisar ou digitar um endereço</string>
     <string name="search_icon_description">Buscar</string>
     <string name="kernel_loading">Carregando kernel AOSP...</string>
+    <string name="kernel_info_format">AOSP Webview %1$s  •  %2$s</string>
     <string name="bottom_bar_settings">Configurações</string>
     <string name="settings_title">Configurações</string>
     <string name="settings_search_engine">Mecanismo de busca</string>
@@ -18,4 +19,8 @@
     <string name="desktop_mode_button_mobile">Modo celular</string>
     <string name="settings_default_browser">Definir como navegador padrão</string>
     <string name="default_browser_already_set">O XaulinXs AOSP Browser já é o navegador padrão</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_system">Padrão do sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Escuro</string>
 </resources>

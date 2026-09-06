@@ -50,11 +50,17 @@ object BrowserDownloadManager {
             }
             setTitle(fileName)
             setDescription(context.getString(R.string.funcoes_download_description))
-            // Notificação nativa do sistema é desligada porque o
-            // DownloadForegroundService assume a notificação de progresso
-            // com dados reais (bytes baixados/total) - ter as duas juntas
-            // duplicaria a notificação pro usuário.
-            setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+            // VISIBILITY_HIDDEN exige a permissão de sistema
+            // DOWNLOAD_WITHOUT_NOTIFICATION (não concedida a apps
+            // comuns) - usá-la sem essa permissão faz o ContentProvider
+            // do DownloadManager rejeitar o insert com SecurityException
+            // ("Invalid value for visibility"). Usamos
+            // VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION: o sistema não
+            // mostra notificação de progresso próprio (evitando duplicar
+            // com a do DownloadForegroundService), só uma notificação ao
+            // concluir - que fica redundante com a nossa de conclusão,
+            // mas não trava/crasha o app.
+            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION)
             allowScanningByMediaScanner()
             setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
             setAllowedOverMetered(true)

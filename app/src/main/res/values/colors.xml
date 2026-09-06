@@ -1,5 +1,8 @@
 <resources>
-    <color name="toolbar_bg">#EEEEEE</color>
-    <color name="qsb_bar_bg">#D9202124</color>
-    <color name="qsb_bar_text">#FFFFFF</color>
+    <!-- Cores fixas antigas (toolbar_bg/qsb_bar_bg/qsb_bar_text) foram
+         removidas: a UI agora usa atributos de tema
+         (?android:attr/colorBackground, ?android:attr/textColorPrimary)
+         que já respeitam claro/escuro automaticamente via
+         Theme.DeviceDefault.DayNight - nenhuma cor fixa sobrando que
+         quebraria no modo escuro. -->
 </resources>

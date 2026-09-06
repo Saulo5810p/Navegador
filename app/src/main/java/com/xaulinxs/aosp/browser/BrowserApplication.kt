@@ -5,6 +5,7 @@ import java.io.File
 import com.norman.webviewup.lib.WebViewUpgrade
 import com.norman.webviewup.lib.util.ProcessUtils
 import com.norman.webviewup.lib.source.UpgradeAssetSource
+import com.xaulinxs.funcoes.ThemeManager
 
 /**
  * Dispara a troca do kernel de WebView o mais cedo possível no ciclo de vida
@@ -21,6 +22,10 @@ class BrowserApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Aplica o modo de tema salvo (sistema/claro/escuro) o mais cedo
+        // possível, antes de qualquer Activity ser criada.
+        ThemeManager.applyToApp(this)
         // WebViewUpgrade.upgrade() so pode rodar no processo principal.
         // Application.onCreate() roda de novo em cada processo sandbox
         // (":sandboxed_process0" etc.) que a propria lib cria durante a

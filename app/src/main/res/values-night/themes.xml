@@ -1,0 +1,7 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Versão ESCURA (values-night/, escolhida automaticamente pelo
+         sistema quando o modo escuro está ativo - ver ThemeManager):
+         Theme.DeviceDefault.NoActionBar é a variante escura nativa do
+         tema do dispositivo/Android 14, sem depender de AppCompat. -->
+    <style name="Theme.AospBrowser" parent="android:Theme.DeviceDefault.NoActionBar" />
+</resources>
