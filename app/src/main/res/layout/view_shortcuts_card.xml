@@ -5,12 +5,20 @@
     (Custom View / Canvas puro) empilhada atrás do conteúdo real num
     FrameLayout - a View de fundo só desenha, o conteúdo interativo
     (atalhos + botão) fica numa camada normal por cima dela.
+
+    Altura fixa em 56dp (definida também no <include> de activity_main.xml,
+    que tem prioridade sobre os valores daqui) e largura wrap_content: o
+    card cresce em largura só o suficiente pra caber os atalhos existentes
+    + botão "+", igual ao Chromium - não deve ocupar a tela toda com
+    poucos atalhos. GradientShadowCardView usa match_parent porque, com o
+    FrameLayout pai já tendo altura/largura concretas (herdadas do
+    include), a medição não é mais circular.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/shortcutsCard"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginTop="20dp">
+    android:layout_width="wrap_content"
+    android:layout_height="56dp"
+    android:layout_marginTop="16dp">
 
     <com.xaulinxs.aosp.browser.widget.GradientShadowCardView
         android:layout_width="match_parent"
@@ -18,13 +26,12 @@
 
     <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp">
+        android:paddingEnd="16dp">
 
         <!-- Atalhos existentes são inflados dinamicamente aqui
              (view_shortcut_item.xml), um por vez, por
@@ -40,8 +47,8 @@
 
         <FrameLayout
             android:id="@+id/btnAddShortcut"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_shortcut_add_button"
             android:clickable="true"
@@ -49,8 +56,8 @@
             android:foreground="?android:attr/selectableItemBackground">
 
             <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_add"
                 android:contentDescription="@string/shortcuts_add_content_description" />

@@ -103,27 +103,34 @@
                 </LinearLayout>
             </FrameLayout>
 
-            <!-- Card de atalhos (estilo Chromium): agora um retângulo
-                 compacto (wrap_content, não match_parent), centralizado
-                 abaixo da barra de busca larga - antes esticava até a
-                 borda e ficava desproporcional ao lado da busca. Ver
+            <!-- Faixa de informação do WebView AOSP (nome do app já
+                 aparece em homeTitle acima) - fica no espaço reservado
+                 entre a busca e a barra de atalhos, como pedido: versão
+                 do WebView + nome do pacote do provider ativo. Populada
+                 por MainActivity.updateKernelInfo(). -->
+            <TextView
+                android:id="@+id/kernelInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="14dp"
+                android:textColor="#9E9E9E"
+                android:textSize="11sp"
+                android:gravity="center"
+                android:text="@string/kernel_loading" />
+
+            <!-- Card de atalhos (estilo Chromium): retângulo compacto
+                 (altura fixa 56dp), cresce em largura só o suficiente
+                 pra caber os atalhos adicionados - não deve ocupar mais
+                 espaço do que isso quando há poucos atalhos. Ver
                  view_shortcuts_card.xml e
                  MainActivity.renderShortcuts()/showAddShortcutDialog(). -->
             <include
                 android:id="@+id/shortcutsCardInclude"
                 layout="@layout/view_shortcuts_card"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_gravity="center_horizontal" />
-
-            <TextView
-                android:id="@+id/kernelInfo"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:textColor="#9E9E9E"
-                android:textSize="11sp"
-                android:text="@string/kernel_loading" />
         </LinearLayout>
 
         <!-- Painel lateral de atalhos de função - overlay por cima de

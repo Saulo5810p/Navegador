@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Item individual de atalho: ícone circular com a inicial do nome +
-     rótulo embaixo, estilo "favicon genérico" do Chromium quando não há
-     favicon de verdade disponível (RemoteViews/Custom View não carregam
-     favicon de rede aqui - manter simples e offline). -->
+<!-- Item individual de atalho: ícone circular pequeno com a inicial do
+     nome ao lado do texto, tudo numa única linha horizontal - estilo
+     Chromium (chip compacto), pensado pra caber dentro da barra de
+     atalhos de 56dp de altura junto de outros atalhos. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="16dp"
-    android:orientation="vertical"
-    android:gravity="center"
+    android:layout_marginEnd="14dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground">
 
     <TextView
         android:id="@+id/shortcutInitial"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:background="@drawable/bg_shortcut_add_button"
         android:gravity="center"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textColor="?android:attr/textColorPrimary" />
 
     <TextView
         android:id="@+id/shortcutLabel"
-        android:layout_width="56dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:gravity="center"
+        android:layout_marginStart="6dp"
+        android:maxWidth="72dp"
         android:maxLines="1"
         android:ellipsize="end"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:textColor="?android:attr/textColorSecondary" />
 </LinearLayout>
