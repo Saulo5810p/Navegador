@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Metadata do widget de busca 4x1 (estilo Chromium). Dimensões seguem a
+    fórmula padrão do Android para células de home screen
+    (70dp * n - 30dp), calculadas pra caber tanto em grids de 4 quanto de
+    5 colunas sem cortar a cápsula:
+      - minWidth 250dp / minHeight 40dp  -> tamanho de 1 linha x 4 colunas
+      - resizeMode horizontal|vertical   -> handles de redimensionamento
+        nas duas direções (o usuário pode alongar/encurtar e engordar a
+        barra); minResizeWidth permite encolher até ~2 colunas em telas
+        apertadas, maxResizeHeight permite engordar até ~110dp se o
+        launcher oferecer o espaço.
+      - targetCellWidth/Height (API 31+) reforçam a intenção de 4x1 nos
+        launchers modernos que usam grade responsiva.
+    initialLayout aponta pro mesmo layout único (widget_browser_search) -
+    ele já se adapta ao tamanho real da célula sozinho (LinearLayout com
+    match_parent + peso), sem precisar de RemoteViewsService nem de
+    múltiplos layouts por breakpoint.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
+    android:maxResizeWidth="330dp"
+    android:maxResizeHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_browser_search"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:previewLayout="@layout/widget_browser_search" />

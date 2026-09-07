@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone de lixeira, usado no botão "excluir arquivo" de cada item da
+     lista de downloads (Fase 4) - abre popup de confirmação antes de
+     apagar de verdade. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp" android:height="18dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="#757575">
+    <path android:fillColor="@android:color/black"
+        android:pathData="M6,19 C6,20.1 6.9,21 8,21 L16,21 C17.1,21 18,20.1 18,19 L18,7 L6,7 Z M19,4 L15.5,4 L14.5,3 L9.5,3 L8.5,4 L5,4 L5,6 L19,6 Z" />
+</vector>

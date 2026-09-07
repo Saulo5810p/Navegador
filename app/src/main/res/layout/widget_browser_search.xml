@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Widget de busca do XaulinXs AOSP Browser - estilo "widget do
+    Chromium/Google": uma única barra comprida, cantos bem arredondados,
+    com ícone de busca à esquerda e texto de atalho. É só um botão grande
+    (RemoteViews não roda WebView nem EditText de verdade) - tocar em
+    qualquer parte da cápsula abre a MainActivity já com o campo de busca
+    focado (ver EXTRA_FOCUS_SEARCH em MainActivity + BrowserSearchWidgetProvider).
+
+    Redimensionável: o AppWidgetProviderInfo declara resizeMode
+    "horizontal|vertical" e minWidth/minHeight de célula 4x1 - o próprio
+    launcher estica este mesmo layout, então não depende de código extra
+    pra funcionar em tamanhos maiores (o texto e o ícone continuam
+    centralizados verticalmente pela altura real da célula).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_widget_search_bar"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp">
+
+    <ImageView
+        android:id="@+id/widgetSearchIcon"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:src="@drawable/ic_search"
+        android:contentDescription="@string/widget_search_hint" />
+
+    <TextView
+        android:id="@+id/widgetSearchLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:text="@string/widget_search_hint"
+        android:textSize="15sp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="?android:attr/textColorSecondary" />
+
+</LinearLayout>

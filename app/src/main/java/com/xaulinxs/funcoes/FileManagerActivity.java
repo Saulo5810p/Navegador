@@ -76,7 +76,12 @@ public class FileManagerActivity extends Activity {
 
         listView = findViewById(R.id.file_list);
         pathLabel = findViewById(R.id.current_path);
-        findViewById(R.id.btn_up).setOnClickListener(v -> navigateUp());
+        // btn_up funciona como "voltar" universal: se ainda há pasta acima
+        // dentro da raiz navegável, sobe um nível; se já está na raiz,
+        // não há mais pra onde subir - nesse caso ele deve fechar a
+        // Activity e devolver o usuário pra tela anterior (ex: Configurações),
+        // já que sem isso só o botão físico do Android conseguia sair daqui.
+        findViewById(R.id.btn_up).setOnClickListener(v -> handleBackNavigation());
 
         listView.setOnItemClickListener((AdapterView<?> parent, View view, int position, long id) -> {
             FileEntry entry = (FileEntry) parent.getItemAtPosition(position);
@@ -172,13 +177,24 @@ public class FileManagerActivity extends Activity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
+    /**
+     * Lógica de "voltar" compartilhada pelo botão da UI (btn_up) e pelo
+     * botão físico/gesto do Android: sobe uma pasta se ainda houver
+     * subnível dentro da raiz navegável; caso já esteja na raiz, fecha a
+     * Activity normalmente (finish), devolvendo o usuário à tela que abriu
+     * o file manager (ex: Configurações).
+     */
+    private void handleBackNavigation() {
         if (currentDir != null && !currentDir.equals(rootDir)) {
             navigateUp();
         } else {
-            super.onBackPressed();
+            finish();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
     }
 
     private void onEntryTapped(FileEntry entry) {

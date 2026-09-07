@@ -67,6 +67,47 @@
                 <data android:scheme="http" />
                 <data android:scheme="https" />
             </intent-filter>
+
+            <!--
+                Intent-filters que fazem o app aparecer no seletor "Abrir
+                com" quando o usuário toca num arquivo local (ex: no
+                gerenciador de arquivos do sistema, ou um anexo salvo).
+                Sem categoria BROWSABLE aqui de propósito: BROWSABLE é só
+                pro papel de "navegador padrão" de links http(s); pra
+                arquivo local isso não se aplica e incluir a categoria
+                indevidamente faz alguns launchers/apps de arquivos
+                filtrarem o app da lista de destino.
+
+                mimeType="*/*" cobre tanto file:// quanto content://
+                (formas como cada app de arquivos/anexo despacha a VIEW)
+                e aceita qualquer tipo de arquivo, não só html/texto -
+                decisão explícita do usuário de manter o filtro
+                abrangente em vez de restringir por extensão.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <!--
+                Alguns apps de arquivos mandam VIEW com file:// e SEM
+                mimeType nenhum (contam só com a extensão do nome do
+                arquivo pra decidir quem abre). Sem pathPattern aqui de
+                propósito: o app fica disponível como "Abrir com" pra
+                QUALQUER arquivo local, não só .html/.htm/.txt - decisão
+                explícita do usuário, mesmo sabendo que isso inclui tipos
+                que um navegador tradicionalmente não abriria (.pdf,
+                .zip, etc.). A WebView decide o que fazer com o conteúdo
+                em tempo de execução; o filtro aqui só controla em quais
+                telas "Abrir com" o app aparece como opção.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -80,9 +121,27 @@
             android:exported="false" />
 
         <activity
+            android:name=".HistoryActivity"
+            android:label="@string/history_title"
+            android:exported="false" />
+
+        <activity
             android:name="com.xaulinxs.funcoes.FileManagerActivity"
             android:label="File Manager"
             android:exported="false" />
+
+        <!-- Widget de busca 4x1 (estilo Chromium) na tela inicial do
+             Android - toque abre a MainActivity direto na busca. -->
+        <receiver
+            android:name=".widget.BrowserSearchWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_browser_search_info" />
+        </receiver>
 
         <!-- Foreground Service que monitora o progresso de um download e
              mantém a notificação persistente atualizada em tempo real. -->

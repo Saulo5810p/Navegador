@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone de seta pra cima, usado no botão "abrir arquivo" de cada item
+     da lista de downloads (Fase 4) - chama o mesmo fluxo de abrir que já
+     existe em FileManagerActivity/DownloadHandler. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp" android:height="18dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="#757575">
+    <path android:fillColor="@android:color/black"
+        android:pathData="M12,4 L4,12 L6.41,14.41 L11,9.83 L11,20 L13,20 L13,9.83 L17.59,14.41 L20,12 Z" />
+</vector>

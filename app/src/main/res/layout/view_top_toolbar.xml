@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Nova barra superior de navegação: agora só tem botão de voltar, campo
+    de URL editável e botão de reload - todo o resto (Desktop/Mobile,
+    Downloads, Configurações, Histórico) foi movido pro painel lateral
+    (view_sidebar.xml), liberando espaço pra essa barra ficar mais alta e
+    respirada.
+
+    O fundo com sombra leve é a GradientShadowCardView (Custom View/Canvas
+    puro) empilhada atrás do conteúdo num FrameLayout, com cornerRadiusDp
+    pequeno (é uma barra reta, não um card arredondado como o de atalhos).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/navToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:visibility="gone">
+
+    <com.xaulinxs.aosp.browser.widget.GradientShadowCardView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cornerRadiusDp="10" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/nav_back_content_description" />
+
+        <EditText
+            android:id="@+id/urlEditText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:background="@null"
+            android:singleLine="true"
+            android:inputType="textUri"
+            android:imeOptions="actionGo"
+            android:textSize="15sp" />
+
+        <ImageButton
+            android:id="@+id/btnReload"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_reload"
+            android:contentDescription="@string/nav_reload_content_description" />
+    </LinearLayout>
+</FrameLayout>

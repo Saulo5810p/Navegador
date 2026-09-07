@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone de "+" simples pro botão de adicionar atalho - vetor XML leve,
+     mesmo critério de "só criar o que faltar" usado em ic_search.xml. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp" android:height="18dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="#757575">
+    <path android:fillColor="@android:color/black"
+        android:pathData="M11,5 L13,5 L13,11 L19,11 L19,13 L13,13 L13,19 L11,19 L11,13 L5,13 L5,11 L11,11 Z" />
+</vector>

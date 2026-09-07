@@ -39,6 +39,10 @@ class SettingsActivity : Activity() {
             startActivity(Intent(this, DownloadsActivity::class.java))
         }
 
+        findViewById<TextView>(R.id.menuHistory).setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
+        }
+
         findViewById<TextView>(R.id.menuFileManager).setOnClickListener {
             val intent = Intent(this, FileManagerActivity::class.java)
             intent.putExtra(FileManagerActivity.EXTRA_MODE, FileManagerActivity.MODE_BROWSE)
@@ -157,10 +161,23 @@ class SettingsActivity : Activity() {
             .setView(container)
             .setPositiveButton(R.string.dialog_add) { _, _ ->
                 val name = nameInput.text.toString().trim()
-                val url = urlInput.text.toString().trim()
-                if (name.isEmpty() || !url.contains("%s")) {
+                var url = urlInput.text.toString().trim()
+                if (name.isEmpty() || url.isEmpty()) {
                     Toast.makeText(this, R.string.add_search_engine_url_hint, Toast.LENGTH_SHORT).show()
                 } else {
+                    // Aceita tanto um template de busca de verdade
+                    // ("https://www.google.com/search?q=%s") quanto uma
+                    // URL fixa sem "%s" (ex: "www.nosearch.exemplo.com"),
+                    // que deve simplesmente abrir sempre o mesmo
+                    // endereço, ignorando o termo digitado - é o caso de
+                    // mecanismos tipo "nosearch" que só sabem navegar
+                    // direto pra uma URL, sem aceitar query.
+                    // "www.x" sem esquema é normalizado pra "https://www.x"
+                    // automaticamente, senão Uri.parse trata tudo antes
+                    // do primeiro "/" como esquema e falha silenciosamente.
+                    if (!url.contains("://")) {
+                        url = "https://$url"
+                    }
                     SearchEngineManager.addCustomEngine(this, name, url)
                     renderSearchEngines()
                 }

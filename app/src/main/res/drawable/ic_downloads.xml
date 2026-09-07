@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone de downloads (seta pra baixo + bandeja), usado no atalho da
+     sidebar que abre DownloadsActivity. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp" android:height="20dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="#757575">
+    <path android:fillColor="@android:color/black"
+        android:pathData="M19,9 L15,9 L15,3 L9,3 L9,9 L5,9 L12,16 Z M5,18 L5,20 L19,20 L19,18 Z" />
+</vector>

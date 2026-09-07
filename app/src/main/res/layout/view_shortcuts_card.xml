@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Card de atalhos da Home, estilo Chromium: fica logo abaixo da barra de
+    busca grande. O fundo com gradiente + sombra é a GradientShadowCardView
+    (Custom View / Canvas puro) empilhada atrás do conteúdo real num
+    FrameLayout - a View de fundo só desenha, o conteúdo interativo
+    (atalhos + botão) fica numa camada normal por cima dela.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/shortcutsCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp">
+
+    <com.xaulinxs.aosp.browser.widget.GradientShadowCardView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <!-- Atalhos existentes são inflados dinamicamente aqui
+             (view_shortcut_item.xml), um por vez, por
+             MainActivity.renderShortcuts(). Fica antes do botão "+" na
+             ordem horizontal, como no Chromium (grade de sites, botão de
+             adicionar por último). -->
+        <LinearLayout
+            android:id="@+id/shortcutsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical" />
+
+        <FrameLayout
+            android:id="@+id/btnAddShortcut"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_shortcut_add_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_add"
+                android:contentDescription="@string/shortcuts_add_content_description" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

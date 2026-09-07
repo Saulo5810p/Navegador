@@ -95,7 +95,15 @@ public final class SearchEngineManager {
         prefs(context).edit().putString(KEY_ACTIVE_ENGINE, name).apply();
     }
 
-    /** Monta a URL de busca substituindo "%s" pelo termo (já URL-encoded). */
+    /**
+     * Monta a URL de busca. Se o template do motor tiver "%s", substitui
+     * pelo termo digitado (já URL-encoded). Se não tiver "%s" - caso de
+     * um mecanismo com URL fixa, tipo "nosearch", que não aceita query e
+     * só sabe abrir sempre o mesmo endereço - o replace simplesmente não
+     * encontra nada pra trocar e a URL fixa é retornada como está,
+     * ignorando o termo digitado. Esse é o comportamento esperado desde
+     * que SettingsActivity parou de exigir "%s" pra aceitar um motor novo.
+     */
     public static String buildSearchUrl(Context context, String query) {
         Engine engine = activeEngine(context);
         String encoded = android.net.Uri.encode(query);

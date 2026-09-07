@@ -1,26 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Item de download (Fase 4): título/subtítulo à esquerda, botão de
+    abrir (seta) e botão de lixeira à direita - substitui o fluxo antigo
+    de toque simples (abrir) + toque longo (excluir com mensagem
+    confusa) por ações explícitas e visíveis.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:paddingStart="16dp"
-    android:paddingEnd="16dp"
+    android:paddingEnd="8dp"
     android:paddingTop="10dp"
     android:paddingBottom="10dp">
 
-    <TextView
-        android:id="@+id/downloadTitle"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="15sp"
-        android:singleLine="true"
-        android:ellipsize="middle" />
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/downloadSubtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textColor="#888888" />
+        <TextView
+            android:id="@+id/downloadTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/downloadSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#888888" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnOpenDownload"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="4dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_open_file"
+        android:contentDescription="@string/downloads_open_content_description" />
+
+    <ImageButton
+        android:id="@+id/btnDeleteDownload"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="4dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_delete"
+        android:contentDescription="@string/downloads_delete_content_description" />
 
 </LinearLayout>

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Painel lateral (sidebar) de atalhos de função: Desktop/Mobile,
+    Downloads, Configurações, Histórico - tudo que saiu da toolbar
+    superior pra dar mais espaço a ela. Fica escondido por padrão
+    (visibility="gone"), abre como overlay sobre o contentArea quando o
+    botão hambúrguer (ic_menu_hamburger) da toolbar/handle é tocado.
+
+    Fundo com sombra leve via GradientShadowCardView (Custom View/Canvas
+    puro), igual ao resto da UI - cornerRadiusDp médio, só nos cantos que
+    ficam visíveis (a sidebar nasce colada numa borda da tela).
+
+    sidebarScroll é um ScrollView normal: a lista de atalhos pode crescer
+    (mais atalhos de função adicionados via popup "+") e a barra permite
+    rolar em vez de cortar itens - single Ctrl+F: "permite visualizar os
+    atalhos... ao ser scrollado" do pedido original.
+
+    O redimensionamento (metade de cima/baixo/tela toda) é controlado em
+    código (MainActivity/SidebarController) ajustando os
+    LayoutParams.height do sidebarRoot - por isso a altura aqui é
+    wrap_content por padrão e ajustada dinamicamente.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/sidebarRoot"
+    android:layout_width="240dp"
+    android:layout_height="match_parent"
+    android:layout_gravity="start|top"
+    android:visibility="gone"
+    android:elevation="0dp">
+
+    <com.xaulinxs.aosp.browser.widget.GradientShadowCardView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cornerRadiusDp="0" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="?android:attr/colorBackground">
+
+        <!-- Cabeçalho: botão hambúrguer fecha o painel (mesmo botão que
+             abre, na toolbar) + título simples. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp">
+
+            <ImageButton
+                android:id="@+id/btnCloseSidebar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_menu_hamburger"
+                android:contentDescription="@string/sidebar_close_content_description" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="@string/sidebar_title"
+                android:textSize="13sp"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <!-- Botão de redimensionar (Fase 2): abre popup com as opções
+                 de tamanho (padrão/metade de cima/metade de baixo/tela
+                 toda) - ver MainActivity.showResizeSidebarDialog(). -->
+            <ImageButton
+                android:id="@+id/btnResizeSidebar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_resize"
+                android:contentDescription="@string/sidebar_resize_content_description" />
+        </LinearLayout>
+
+        <!-- Lista scrollável de atalhos de função. Populada em código por
+             MainActivity.renderSidebarShortcuts() - cada item é inflado
+             de view_sidebar_item.xml. -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:id="@+id/sidebarItemsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <!-- Botão circular "+" no rodapé: abre popup pra adicionar/remover
+             atalhos de função da sidebar (ver
+             MainActivity.showManageSidebarShortcutsDialog()). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="12dp"
+            android:paddingBottom="16dp">
+
+            <FrameLayout
+                android:id="@+id/btnManageSidebarShortcuts"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_shortcut_add_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_add"
+                    android:contentDescription="@string/sidebar_manage_shortcuts_content_description" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Rodapé: versão do WebView AOSP embutido + provider ativo,
+             mesma informação de kernelInfo na Home, disponível também
+             aqui pra quem navega com a sidebar aberta. Preenchido por
+             MainActivity.applyWebViewInfoToSidebar(), chamado no mesmo
+             ponto onde kernelInfo é atualizado (onWebViewReady()). -->
+        <TextView
+            android:id="@+id/sidebarWebViewVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp"
+            android:textColor="#9E9E9E"
+            android:textSize="10sp"
+            android:text="@string/kernel_loading" />
+    </LinearLayout>
+</FrameLayout>

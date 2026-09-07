@@ -3,7 +3,7 @@ package com.xaulinxs.aosp.browser
 import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
-import android.widget.AdapterView
+import android.view.View
 import android.widget.ListView
 import android.widget.TextView
 import com.xaulinxs.funcoes.DownloadEntry
@@ -12,12 +12,13 @@ import com.xaulinxs.funcoes.DownloadsAdapter
 
 /**
  * Tela de Downloads: lista os arquivos já concluídos via
- * DownloadHandler.queryDownloads(), com toque para abrir e toque longo
- * para excluir. É a peça que faltava para o usuário conseguir ver o
- * resultado dos downloads feitos pelo DownloadManager - antes não havia
- * nenhuma UI que expusesse essa lista.
+ * DownloadHandler.queryDownloads(). Fase 4: ações explícitas por item
+ * (botão de abrir + botão de lixeira), em vez do fluxo antigo de toque
+ * simples (abrir)/toque longo (excluir, com mensagem confusa
+ * "Downloads?"). A confirmação agora nomeia o arquivo e explica o que
+ * vai acontecer.
  */
-class DownloadsActivity : Activity() {
+class DownloadsActivity : Activity(), DownloadsAdapter.OnActionListener {
 
     private lateinit var listView: ListView
     private lateinit var emptyLabel: TextView
@@ -28,17 +29,6 @@ class DownloadsActivity : Activity() {
 
         listView = findViewById(R.id.downloadsList)
         emptyLabel = findViewById(R.id.emptyLabel)
-
-        listView.setOnItemClickListener { parent: AdapterView<*>, _, position, _ ->
-            val entry = parent.getItemAtPosition(position) as DownloadEntry
-            DownloadHandler.openDownload(this, entry)
-        }
-
-        listView.setOnItemLongClickListener { parent, _, position, _ ->
-            val entry = parent.getItemAtPosition(position) as DownloadEntry
-            confirmDelete(entry)
-            true
-        }
     }
 
     override fun onResume() {
@@ -48,14 +38,23 @@ class DownloadsActivity : Activity() {
 
     private fun reload() {
         val entries = DownloadHandler.queryDownloads(this)
-        listView.adapter = DownloadsAdapter(this, entries)
-        emptyLabel.visibility = if (entries.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        listView.adapter = DownloadsAdapter(this, entries, this)
+        emptyLabel.visibility = if (entries.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    override fun onOpen(entry: DownloadEntry) {
+        DownloadHandler.openDownload(this, entry)
+    }
+
+    override fun onDelete(entry: DownloadEntry) {
+        confirmDelete(entry)
     }
 
     private fun confirmDelete(entry: DownloadEntry) {
+        val fileName = entry.title ?: ""
         AlertDialog.Builder(this)
-            .setTitle(entry.title ?: "")
-            .setMessage(getString(R.string.settings_downloads) + "?")
+            .setTitle(R.string.downloads_delete_confirm_title)
+            .setMessage(getString(R.string.downloads_delete_confirm_message, fileName))
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 DownloadHandler.deleteDownload(this, entry)
                 reload()

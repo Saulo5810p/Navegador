@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Raio dos cantos (em dp) da GradientShadowCardView - permite usar
+         a mesma Custom View tanto como card bem arredondado (atalhos da
+         Home) quanto como barra retangular (toolbar superior, painel
+         lateral), configurando direto no layout XML sem precisar chamar
+         setCornerRadiusDp() em código pra cada instância. -->
+    <declare-styleable name="GradientShadowCardView">
+        <attr name="cornerRadiusDp" format="float" />
+    </declare-styleable>
+</resources>

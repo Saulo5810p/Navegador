@@ -1,80 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Nova estrutura da tela principal, estilo Chromium:
+    Estrutura da tela principal, estilo Chromium (reformulada):
 
-    - rootContainer: LinearLayout vertical raiz. navToolbar ocupa seu
-      proprio espaco fixo no topo (nao sobrepoe mais nada); o restante da
-      altura (contentArea) e dividido entre a WebView e a Home.
-    - contentArea: FrameLayout que contem webViewContainer (WebView
-      injetada por codigo) e homeLayout empilhados - so um dos dois fica
-      visivel por vez, dentro do espaco que sobra abaixo da navToolbar.
-    - navToolbar: barra fina de navegacao (voltar + campo de URL
-      editavel), so visivel durante a navegacao (escondida na Home). Fica
-      no topo do LinearLayout, entao a WebView nunca reserva espaco por
-      baixo dela - resolve a barra cobrindo o conteudo do site.
-    - bottomBar: barra retangular com gradiente, sempre visivel, abre a
-      SettingsActivity ao ser tocada.
+    - rootContainer: LinearLayout vertical raiz.
+    - navToolbar (view_top_toolbar.xml): barra fina no topo, agora só com
+      voltar + URL editável + reload. Desktop/Mobile, Downloads,
+      Configurações e Histórico saíram daqui e foram pro painel lateral -
+      dá mais espaço pra essa barra respirar.
+    - contentArea: FrameLayout que contém, empilhados: webViewContainer,
+      homeLayout, sidebarRoot (painel lateral, por cima de tudo quando
+      aberto) e btnOpenSidebar (handle fixo "hamburguer" que abre o painel).
+    - bottomBar antiga foi removida - Configurações agora é um atalho
+      dentro da sidebar (ver view_sidebar.xml).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="?android:attr/colorBackground">
 
-    <!-- Barra fina de navegacao (voltar + campo de URL editavel), so
-         visivel quando a WebView esta em uso (fora da Home). O campo de
-         URL agora e um EditText de verdade - tocar nele permite digitar
-         uma nova URL, em vez de so mostrar/recarregar a atual. -->
-    <LinearLayout
-        android:id="@+id/navToolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="?android:attr/colorBackground"
-        android:padding="8dp"
-        android:gravity="center_vertical"
-        android:visibility="gone">
-
-        <Button
-            android:id="@+id/btnBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="&lt;" />
-
-        <Button
-            android:id="@+id/btnHome"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="&#8962;" />
-
-        <EditText
-            android:id="@+id/urlEditText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:singleLine="true"
-            android:inputType="textUri"
-            android:imeOptions="actionGo"
-            android:textSize="13sp" />
-
-        <!-- Alternador Desktop/Mobile, padrão em qualquer navegador
-             Android - texto muda conforme o modo atual (ver
-             MainActivity.updateDesktopModeButtonLabel()). -->
-        <Button
-            android:id="@+id/btnDesktopMode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:textSize="11sp"
-            android:text="@string/desktop_mode_button_desktop" />
-    </LinearLayout>
+    <include
+        android:id="@+id/navToolbarInclude"
+        layout="@layout/view_top_toolbar" />
 
     <!-- Area de conteudo: fica com todo o espaco que sobra abaixo da
-         navToolbar (e acima da bottomBar). WebView e Home se empilham
-         aqui, nunca por baixo da toolbar. -->
+         navToolbar. WebView, Home e o painel lateral se empilham aqui. -->
     <FrameLayout
         android:id="@+id/contentArea"
         android:layout_width="match_parent"
@@ -106,36 +58,63 @@
                 android:textColor="?android:attr/textColorPrimary"
                 android:layout_marginBottom="24dp" />
 
-            <LinearLayout
+            <!-- Barra de busca grande: fundo com gradiente + sombra via
+                 Custom View/Canvas (GradientShadowCardView), empilhada
+                 atrás do ícone+campo num FrameLayout. Agora mais larga
+                 (90% da tela, limitada a 640dp em telas grandes) e
+                 centralizada - antes ocupava a mesma largura do card de
+                 atalhos compacto, o que deixava os dois desproporcionais. -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/bg_search_field"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp">
+                android:layout_gravity="center_horizontal">
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_search"
-                    android:contentDescription="@string/search_icon_description" />
+                <com.xaulinxs.aosp.browser.widget.GradientShadowCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    app:cornerRadiusDp="32" />
 
-                <EditText
-                    android:id="@+id/searchInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="12dp"
-                    android:background="@null"
-                    android:hint="@string/search_hint"
-                    android:inputType="text"
-                    android:imeOptions="actionGo"
-                    android:singleLine="true"
-                    android:textSize="16sp" />
-            </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="22dp"
+                    android:paddingEnd="22dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_search"
+                        android:contentDescription="@string/search_icon_description" />
+
+                    <EditText
+                        android:id="@+id/searchInput"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:background="@null"
+                        android:hint="@string/search_hint"
+                        android:inputType="text"
+                        android:imeOptions="actionGo"
+                        android:singleLine="true"
+                        android:textSize="18sp" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Card de atalhos (estilo Chromium): agora um retângulo
+                 compacto (wrap_content, não match_parent), centralizado
+                 abaixo da barra de busca larga - antes esticava até a
+                 borda e ficava desproporcional ao lado da busca. Ver
+                 view_shortcuts_card.xml e
+                 MainActivity.renderShortcuts()/showAddShortcutDialog(). -->
+            <include
+                android:id="@+id/shortcutsCardInclude"
+                layout="@layout/view_shortcuts_card"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal" />
 
             <TextView
                 android:id="@+id/kernelInfo"
@@ -147,33 +126,36 @@
                 android:text="@string/kernel_loading" />
         </LinearLayout>
 
+        <!-- Painel lateral de atalhos de função - overlay por cima de
+             Home/WebView, escondido por padrão (visibility="gone" dentro
+             de view_sidebar.xml). Fica depois na ordem de empilhamento
+             pra desenhar por cima quando visível. -->
+        <include
+            android:id="@+id/sidebarInclude"
+            layout="@layout/view_sidebar" />
+
+        <!-- Handle fixo que abre o painel lateral - canto superior
+             esquerdo do contentArea, sempre visível (mesmo local onde o
+             painel nasce). Some quando o painel já está aberto (o botão
+             de fechar fica dentro do próprio painel). -->
+        <FrameLayout
+            android:id="@+id/btnOpenSidebar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="start|top"
+            android:layout_margin="10dp"
+            android:background="@drawable/bg_shortcut_add_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_menu_hamburger"
+                android:contentDescription="@string/sidebar_open_content_description" />
+        </FrameLayout>
     </FrameLayout>
-
-    <!-- Barra retangular inferior com gradiente, sempre visivel - abre
-         SettingsActivity ao ser tocada -->
-    <LinearLayout
-        android:id="@+id/bottomBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="12dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_bottom_bar_gradient"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        android:clickable="true"
-        android:focusable="true">
-
-        <TextView
-            android:id="@+id/bottomBarLabel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/bottom_bar_settings"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textSize="13sp" />
-    </LinearLayout>
 
 </LinearLayout>
