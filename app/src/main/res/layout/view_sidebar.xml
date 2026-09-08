@@ -8,16 +8,18 @@
     Dois estados de largura, controlados em código
     (MainActivity.sidebarExpanded / applySidebarExpandedState()):
 
-    - COLAPSADA (padrão ao abrir o app): faixa fina (~56dp) só com os
+    - COLAPSADA (padrão ao abrir o app): faixa fina (~80dp) só com os
       ÍCONES dos atalhos de função, sem rótulo, sem o título "Atalhos",
-      sem cabeçalho e sem a informação de kernel do WebView - "reta
-      final com os atalhos" pedida.
+      sem informação de kernel do WebView e sem o botão de redimensionar
+      - "reta final com os atalhos" pedida. O botão hambúrguer (agora
+      no rodapé) continua visível mesmo nesse estado, pra sempre dar um
+      jeito de expandir de volta sem precisar arrastar.
     - EXPANDIDA: largura de acordo com o modo de espaço escolhido no
       popup de redimensionar (240dp normalmente, tela toda no modo
       Tela Toda - ver SidebarSizeMode/expandedSidebarWidthPx()), com
       tudo visível: informação de kernel no topo, lista de atalhos com
-      rótulo, botão "+" de gerenciar, e cabeçalho (hambúrguer + título
-      "Atalhos" + redimensionar) no RODAPÉ.
+      rótulo, botão "+" de gerenciar, e no RODAPÉ o hambúrguer junto do
+      título "Atalhos" e do botão de redimensionar.
 
     A transição entre os dois estados acontece arrastando o dedo na
     faixa fina sidebarDragHandle (grudada na borda interna da barra) ou
@@ -41,7 +43,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/sidebarRoot"
-    android:layout_width="56dp"
+    android:layout_width="80dp"
     android:layout_height="match_parent"
     android:layout_gravity="end|top"
     android:visibility="visible"
@@ -134,19 +136,30 @@
         <!-- NOVO rodapé: hambúrguer (agora alterna expandir/recolher em
              vez de "fechar" um painel que some) + título "Atalhos" +
              botão de redimensionar - era o cabeçalho do topo, movido
-             pra cá conforme pedido. Só existe com a barra expandida. -->
+             pra cá conforme pedido. O CONTAINER em si fica sempre
+             visível (o botão hambúrguer precisa continuar acessível
+             mesmo colapsada, senão não tem como expandir de volta sem
+             arrastar) - só o título e o botão de redimensionar somem
+             quando colapsada (não cabe texto na faixa fina, e
+             redimensionar a altura não faz sentido sem ver a lista).
+             Gravidade da linha muda pra CENTER (em vez de só
+             CENTER_VERTICAL) quando colapsada, centralizando o
+             hambúrguer sozinho na faixa fina - ver
+             MainActivity.setExpandedContentVisible(). -->
         <LinearLayout
             android:id="@+id/sidebarBottomHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:gravity="center"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:paddingTop="14dp"
             android:paddingBottom="14dp">
 
+            <!-- Sempre visível, colapsada ou expandida - único controle
+                 fixo pra expandir a barra de volta sem precisar
+                 arrastar a alça. -->
             <ImageButton
                 android:id="@+id/btnCloseSidebar"
                 android:layout_width="32dp"
@@ -156,22 +169,27 @@
                 android:contentDescription="@string/sidebar_close_content_description" />
 
             <TextView
+                android:id="@+id/sidebarTitleText"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="12dp"
+                android:visibility="gone"
                 android:text="@string/sidebar_title"
                 android:textSize="13sp"
                 android:textColor="?android:attr/textColorSecondary" />
 
             <!-- Botão de redimensionar: abre popup com as opções de
                  tamanho (padrão/metade de cima/metade de baixo/tela
-                 toda) - ver MainActivity.showResizeSidebarDialog(). -->
+                 toda) - ver MainActivity.showResizeSidebarDialog().
+                 Só aparece com a barra expandida (mesmo motivo do
+                 título: não cabe / não faz sentido na faixa fina). -->
             <ImageButton
                 android:id="@+id/btnResizeSidebar"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_marginStart="4dp"
+                android:visibility="gone"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_resize"
                 android:contentDescription="@string/sidebar_resize_content_description" />

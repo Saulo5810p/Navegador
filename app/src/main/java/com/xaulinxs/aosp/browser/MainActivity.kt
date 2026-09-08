@@ -90,6 +90,7 @@ class MainActivity : Activity() {
     private lateinit var sidebarDragHandle: View
     private lateinit var sidebarManageRow: LinearLayout
     private lateinit var sidebarBottomHeader: LinearLayout
+    private lateinit var sidebarTitleText: TextView
     private lateinit var btnCloseSidebar: ImageButton
     private lateinit var btnManageSidebarShortcuts: FrameLayout
     private lateinit var btnResizeSidebar: ImageButton
@@ -123,8 +124,11 @@ class MainActivity : Activity() {
         // Largura da barra de atalhos colapsada (só ícones) e a largura
         // "padrão" quando expandida (usada em todo modo de espaço exceto
         // Tela Toda, onde a expandida vira a tela inteira - ver
-        // expandedSidebarWidthPx()).
-        private const val SIDEBAR_COLLAPSED_WIDTH_DP = 56f
+        // expandedSidebarWidthPx()). 80dp colapsada dá espaço de sobra
+        // pro ícone (22dp) + paddings do item (16dp de cada lado) mais a
+        // faixa da alça de arrastar (16dp) sem comprimir nada - com
+        // menos que isso o ícone ficava espremido/cortado.
+        private const val SIDEBAR_COLLAPSED_WIDTH_DP = 80f
         private const val SIDEBAR_EXPANDED_WIDTH_DP = 240f
         private const val SIDEBAR_RESIZE_ANIMATION_MS = 180L
     }
@@ -174,6 +178,7 @@ class MainActivity : Activity() {
         sidebarDragHandle = findViewById(R.id.sidebarDragHandle)
         sidebarManageRow = findViewById(R.id.sidebarManageRow)
         sidebarBottomHeader = findViewById(R.id.sidebarBottomHeader)
+        sidebarTitleText = findViewById(R.id.sidebarTitleText)
         btnCloseSidebar = findViewById(R.id.btnCloseSidebar)
         btnManageSidebarShortcuts = findViewById(R.id.btnManageSidebarShortcuts)
         btnResizeSidebar = findViewById(R.id.btnResizeSidebar)
@@ -468,18 +473,24 @@ class MainActivity : Activity() {
 
     /**
      * Mostra/esconde os blocos que só cabem com a barra expandida:
-     * informação de kernel (topo), botão "+" de gerenciar atalhos, e o
-     * cabeçalho com hambúrguer+título+redimensionar (rodapé). Não mexe
-     * nos rótulos dos itens de função - isso é responsabilidade de
-     * renderSidebarShortcuts(), que lê sidebarExpanded na hora de montar
-     * cada item; por isso todo lugar que muda sidebarExpanded chama as
-     * duas funções junto.
+     * informação de kernel (topo), botão "+" de gerenciar atalhos, o
+     * título "Atalhos" e o botão de redimensionar (rodapé). O botão
+     * hambúrguer (sidebarBottomHeader como um todo) NÃO entra nessa
+     * lista - fica sempre visível, colapsada ou não, é o único controle
+     * fixo pra expandir de novo sem precisar arrastar a alça; só a
+     * gravidade da linha muda pra centralizar ele sozinho quando os
+     * outros dois somem. Não mexe nos rótulos dos itens de função -
+     * isso é responsabilidade de renderSidebarShortcuts(), que lê
+     * sidebarExpanded na hora de montar cada item; por isso todo lugar
+     * que muda sidebarExpanded chama as duas funções junto.
      */
     private fun setExpandedContentVisible(visible: Boolean) {
         val visibility = if (visible) View.VISIBLE else View.GONE
         sidebarWebViewVersion.visibility = visibility
         sidebarManageRow.visibility = visibility
-        sidebarBottomHeader.visibility = visibility
+        sidebarTitleText.visibility = visibility
+        btnResizeSidebar.visibility = visibility
+        sidebarBottomHeader.gravity = if (visible) Gravity.CENTER_VERTICAL else Gravity.CENTER
     }
 
     /**
