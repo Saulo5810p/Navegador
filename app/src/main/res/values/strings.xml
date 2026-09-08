@@ -7,7 +7,7 @@
     <string name="shortcuts_dialog_invalid">Preencha nome e URL</string>
     <string name="nav_back_content_description">Voltar</string>
     <string name="nav_reload_content_description">Recarregar página</string>
-    <string name="sidebar_close_content_description">Fechar painel</string>
+    <string name="sidebar_close_content_description">Recolher/expandir a barra de atalhos</string>
     <string name="sidebar_title">Atalhos</string>
     <string name="sidebar_manage_shortcuts_content_description">Gerenciar atalhos da barra lateral</string>
     <string name="sidebar_item_desktop_mode">Modo desktop</string>
@@ -15,7 +15,7 @@
     <string name="sidebar_item_downloads">Downloads</string>
     <string name="sidebar_item_settings">Configurações</string>
     <string name="sidebar_item_history">Histórico</string>
-    <string name="sidebar_open_content_description">Abrir painel de atalhos</string>
+    <string name="sidebar_drag_handle_content_description">Arrastar para expandir ou recolher a barra de atalhos</string>
     <string name="sidebar_manage_shortcuts_title">Atalhos da barra lateral</string>
     <string name="sidebar_resize_content_description">Redimensionar painel</string>
     <string name="sidebar_resize_title">Tamanho do painel</string>

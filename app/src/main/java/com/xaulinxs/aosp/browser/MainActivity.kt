@@ -1,6 +1,9 @@
 package com.xaulinxs.aosp.browser
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -9,9 +12,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.webkit.URLUtil
@@ -74,14 +80,25 @@ class MainActivity : Activity() {
     private lateinit var shortcutsContainer: LinearLayout
     private lateinit var btnAddShortcut: FrameLayout
 
-    // Painel lateral (sidebar) de atalhos de função - substitui a antiga
-    // bottomBar e os botões Desktop/Mobile da toolbar. Ver view_sidebar.xml.
+    // Barra de atalhos (sidebar) de função - substitui a antiga bottomBar
+    // e os botões Desktop/Mobile da toolbar. Ver view_sidebar.xml. Não
+    // tem mais um botão externo pra "abrir": ela é sempre visível,
+    // colapsada (só ícones) ou expandida, e a troca entre os dois
+    // estados é feita pela alça sidebarDragHandle.
     private lateinit var sidebarRoot: FrameLayout
     private lateinit var sidebarItemsContainer: LinearLayout
-    private lateinit var btnOpenSidebar: FrameLayout
+    private lateinit var sidebarDragHandle: View
+    private lateinit var sidebarManageRow: LinearLayout
+    private lateinit var sidebarBottomHeader: LinearLayout
     private lateinit var btnCloseSidebar: ImageButton
     private lateinit var btnManageSidebarShortcuts: FrameLayout
     private lateinit var btnResizeSidebar: ImageButton
+
+    // true = barra expandida (tudo visível: kernel no topo, rótulos dos
+    // atalhos, cabeçalho com título+hambúrguer no rodapé). false = só a
+    // faixa fina de ícones. Começa colapsada por padrão (ver onCreate) -
+    // e é lembrada entre aberturas via SidebarSizeManager.getExpanded().
+    private var sidebarExpanded = false
 
     // URL recebida de fora (ex: link clicado em outro app, com o
     // XaulinXs AOSP Browser definido como navegador padrão) - guardada
@@ -102,6 +119,14 @@ class MainActivity : Activity() {
         private const val REQUEST_CODE_FILE_CHOOSER = 100
         private const val REQUEST_CODE_NOTIFICATIONS = 101
         private const val TAG = "MainActivity"
+
+        // Largura da barra de atalhos colapsada (só ícones) e a largura
+        // "padrão" quando expandida (usada em todo modo de espaço exceto
+        // Tela Toda, onde a expandida vira a tela inteira - ver
+        // expandedSidebarWidthPx()).
+        private const val SIDEBAR_COLLAPSED_WIDTH_DP = 56f
+        private const val SIDEBAR_EXPANDED_WIDTH_DP = 240f
+        private const val SIDEBAR_RESIZE_ANIMATION_MS = 180L
     }
 
     private val upgradeCallback = object : UpgradeCallback {
@@ -146,7 +171,9 @@ class MainActivity : Activity() {
 
         sidebarRoot = findViewById(R.id.sidebarInclude)
         sidebarItemsContainer = findViewById(R.id.sidebarItemsContainer)
-        btnOpenSidebar = findViewById(R.id.btnOpenSidebar)
+        sidebarDragHandle = findViewById(R.id.sidebarDragHandle)
+        sidebarManageRow = findViewById(R.id.sidebarManageRow)
+        sidebarBottomHeader = findViewById(R.id.sidebarBottomHeader)
         btnCloseSidebar = findViewById(R.id.btnCloseSidebar)
         btnManageSidebarShortcuts = findViewById(R.id.btnManageSidebarShortcuts)
         btnResizeSidebar = findViewById(R.id.btnResizeSidebar)
@@ -154,10 +181,16 @@ class MainActivity : Activity() {
         btnAddShortcut.setOnClickListener { showAddShortcutDialog() }
         renderShortcuts()
 
-        btnOpenSidebar.setOnClickListener { openSidebar() }
-        btnCloseSidebar.setOnClickListener { closeSidebar() }
+        // Estado inicial (colapsada/expandida) vem do que o usuário
+        // deixou salvo da última vez - precisa ser lido ANTES de
+        // renderSidebarShortcuts()/applySidebarSizeMode(), já que os
+        // dois consultam sidebarExpanded pra decidir rótulo e largura.
+        sidebarExpanded = SidebarSizeManager.getExpanded(this)
+        setExpandedContentVisible(sidebarExpanded)
+        btnCloseSidebar.setOnClickListener { toggleSidebarExpanded() }
         btnManageSidebarShortcuts.setOnClickListener { showManageSidebarShortcutsDialog() }
         btnResizeSidebar.setOnClickListener { showResizeSidebarDialog() }
+        setupSidebarDragHandle()
         renderSidebarShortcuts()
         applySidebarSizeMode()
 
@@ -405,19 +438,172 @@ class MainActivity : Activity() {
             .show()
     }
 
+    /** Converte um valor em dp pra pixels, usando a densidade da tela atual. */
+    private fun dp(value: Float): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun collapsedSidebarWidthPx(): Int = dp(SIDEBAR_COLLAPSED_WIDTH_DP)
+
     /**
-     * Abre o painel lateral (sidebar) - mostra o overlay e some com o
-     * handle "☰" fixo (o botão de fechar já mora dentro do próprio
-     * painel, não precisa dos dois visíveis ao mesmo tempo).
+     * Largura-alvo da barra quando EXPANDIDA. Segue a configuração de
+     * espaço escolhida no popup de redimensionar (mesmo
+     * SidebarSizeMode que já controlava a altura): no modo Tela Toda a
+     * barra expande até ocupar a largura inteira do contentArea; nos
+     * outros três modos, a largura expandida padrão é 240dp. A barra
+     * COLAPSADA nunca respeita esse valor - sempre volta pra faixa fina
+     * de ícones (collapsedSidebarWidthPx()), mesmo em modo Tela Toda.
      */
-    private fun openSidebar() {
-        sidebarRoot.visibility = View.VISIBLE
-        btnOpenSidebar.visibility = View.GONE
+    private fun expandedSidebarWidthPx(): Int {
+        return if (SidebarSizeManager.getSizeMode(this) == SidebarSizeMode.FULLSCREEN) {
+            (sidebarRoot.parent as? View)?.width?.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        } else {
+            dp(SIDEBAR_EXPANDED_WIDTH_DP)
+        }
     }
 
-    private fun closeSidebar() {
-        sidebarRoot.visibility = View.GONE
-        btnOpenSidebar.visibility = View.VISIBLE
+    private fun setSidebarWidth(widthPx: Int) {
+        val params = sidebarRoot.layoutParams as FrameLayout.LayoutParams
+        params.width = widthPx
+        sidebarRoot.layoutParams = params
+    }
+
+    /**
+     * Mostra/esconde os blocos que só cabem com a barra expandida:
+     * informação de kernel (topo), botão "+" de gerenciar atalhos, e o
+     * cabeçalho com hambúrguer+título+redimensionar (rodapé). Não mexe
+     * nos rótulos dos itens de função - isso é responsabilidade de
+     * renderSidebarShortcuts(), que lê sidebarExpanded na hora de montar
+     * cada item; por isso todo lugar que muda sidebarExpanded chama as
+     * duas funções junto.
+     */
+    private fun setExpandedContentVisible(visible: Boolean) {
+        val visibility = if (visible) View.VISIBLE else View.GONE
+        sidebarWebViewVersion.visibility = visibility
+        sidebarManageRow.visibility = visibility
+        sidebarBottomHeader.visibility = visibility
+    }
+
+    /**
+     * Anima a largura da barra até o alvo do novo estado (colapsada ou
+     * expandida), persiste a escolha (SidebarSizeManager.setExpanded)
+     * pra lembrar entre aberturas do app, e atualiza os blocos/rótulos
+     * que só existem expandida.
+     *
+     * `animate = false` é usado só na inicialização (onCreate), pra
+     * aplicar o estado salvo sem uma animação de abertura desnecessária
+     * assim que a tela aparece.
+     */
+    private fun applySidebarExpandedState(expanded: Boolean, animate: Boolean = true) {
+        sidebarExpanded = expanded
+        SidebarSizeManager.setExpanded(this, expanded)
+
+        val targetWidth = if (expanded) expandedSidebarWidthPx() else collapsedSidebarWidthPx()
+        val currentWidth = (sidebarRoot.layoutParams as? FrameLayout.LayoutParams)?.width
+            ?.takeIf { it > 0 } ?: collapsedSidebarWidthPx()
+
+        // Colapsando: some com rótulo/kernel/cabeçalho JÁ, não dá pra
+        // caber texto na largura final de 56dp e ficaria cortado durante
+        // a animação. Expandindo: só reaparece quando a animação
+        // terminar (listener abaixo), senão o texto "estica" torto
+        // enquanto a barra ainda está estreita no meio do gesto.
+        if (!expanded) {
+            setExpandedContentVisible(false)
+            renderSidebarShortcuts()
+        }
+
+        if (!animate) {
+            setSidebarWidth(targetWidth)
+            if (expanded) {
+                setExpandedContentVisible(true)
+                renderSidebarShortcuts()
+            }
+            return
+        }
+
+        ValueAnimator.ofInt(currentWidth, targetWidth).apply {
+            duration = SIDEBAR_RESIZE_ANIMATION_MS
+            addUpdateListener { setSidebarWidth(it.animatedValue as Int) }
+            if (expanded) {
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        setExpandedContentVisible(true)
+                        renderSidebarShortcuts()
+                    }
+                })
+            }
+            start()
+        }
+    }
+
+    private fun toggleSidebarExpanded() = applySidebarExpandedState(!sidebarExpanded)
+
+    /** Usado pelos itens de função (Downloads/Configurações/Histórico) depois de navegar. */
+    private fun collapseSidebar() = applySidebarExpandedState(false)
+
+    /**
+     * Liga o gesto de puxar com o dedo na alça fina (sidebarDragHandle)
+     * colada na borda interna da barra:
+     *
+     * - Arrastar: ajusta a largura em tempo real, entre
+     *   collapsedSidebarWidthPx() e expandedSidebarWidthPx() - como a
+     *   barra agora fica colada na borda "end" (direita em LTR), puxar
+     *   o dedo pra ESQUERDA (deltaX negativo) aumenta a largura, puxar
+     *   pra DIREITA encolhe. Ao cruzar o meio do caminho, já
+     *   mostra/esconde rótulo e cabeçalho, sem esperar soltar o dedo.
+     * - Soltar depois de arrastar: assenta (snap) no estado mais
+     *   próximo de onde o dedo parou (aberta ou colapsada por completo).
+     * - Tocar sem arrastar (movimento menor que o touch slop do
+     *   sistema): funciona como um toque normal, alternando o estado -
+     *   pra quem prefere tocar a arrastar.
+     */
+    private fun setupSidebarDragHandle() {
+        val touchSlop = ViewConfiguration.get(this).scaledTouchSlop
+        var downRawX = 0f
+        var downWidth = 0
+        var isDragging = false
+
+        sidebarDragHandle.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downRawX = event.rawX
+                    downWidth = (sidebarRoot.layoutParams as? FrameLayout.LayoutParams)?.width
+                        ?.takeIf { it > 0 } ?: collapsedSidebarWidthPx()
+                    isDragging = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.rawX - downRawX
+                    if (!isDragging && kotlin.math.abs(deltaX) > touchSlop) {
+                        isDragging = true
+                    }
+                    if (isDragging) {
+                        val min = collapsedSidebarWidthPx()
+                        val max = expandedSidebarWidthPx()
+                        val newWidth = (downWidth - deltaX.toInt()).coerceIn(min, max)
+                        setSidebarWidth(newWidth)
+                        val expandedNow = newWidth > (min + max) / 2
+                        if (expandedNow != sidebarExpanded) {
+                            sidebarExpanded = expandedNow
+                            setExpandedContentVisible(expandedNow)
+                            renderSidebarShortcuts()
+                        }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isDragging) {
+                        // sidebarExpanded já reflete o lado mais próximo
+                        // de onde o dedo soltou (atualizado no último
+                        // cruzamento do meio, acima) - só falta terminar
+                        // a animação até a largura final desse estado.
+                        applySidebarExpandedState(sidebarExpanded)
+                    } else {
+                        toggleSidebarExpanded()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     /**
@@ -429,7 +615,12 @@ class MainActivity : Activity() {
      * FULL/padrão: altura total, colada no topo (comportamento original).
      * TOP_HALF/BOTTOM_HALF: metade da altura do contentArea, colada em
      * cima ou embaixo.
-     * FULLSCREEN: ocupa a tela toda (contentArea inteiro).
+     * FULLSCREEN: ocupa a tela toda (contentArea inteiro) - largura só
+     * quando EXPANDIDA (ver expandedSidebarWidthPx()); colapsada, a
+     * largura continua sendo a faixa fina de ícones mesmo nesse modo.
+     *
+     * A barra fica colada na borda "end" (direita em LTR) - trocado de
+     * "start" (esquerda) porque era o lado que não era o desejado.
      */
     private fun applySidebarSizeMode() {
         val params = sidebarRoot.layoutParams as FrameLayout.LayoutParams
@@ -437,35 +628,31 @@ class MainActivity : Activity() {
         when (SidebarSizeManager.getSizeMode(this)) {
             SidebarSizeMode.FULL -> {
                 params.height = FrameLayout.LayoutParams.MATCH_PARENT
-                params.gravity = android.view.Gravity.START or android.view.Gravity.TOP
+                params.gravity = Gravity.END or Gravity.TOP
             }
             SidebarSizeMode.TOP_HALF -> {
                 params.height = if (parentHeight > 0) parentHeight / 2 else FrameLayout.LayoutParams.WRAP_CONTENT
-                params.gravity = android.view.Gravity.START or android.view.Gravity.TOP
+                params.gravity = Gravity.END or Gravity.TOP
             }
             SidebarSizeMode.BOTTOM_HALF -> {
                 params.height = if (parentHeight > 0) parentHeight / 2 else FrameLayout.LayoutParams.WRAP_CONTENT
-                params.gravity = android.view.Gravity.START or android.view.Gravity.BOTTOM
+                params.gravity = Gravity.END or Gravity.BOTTOM
             }
             SidebarSizeMode.FULLSCREEN -> {
-                params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = FrameLayout.LayoutParams.MATCH_PARENT
-                params.gravity = android.view.Gravity.START or android.view.Gravity.TOP
+                params.gravity = Gravity.END or Gravity.TOP
             }
         }
-        // Largura volta ao padrão (240dp definido no XML) pra qualquer
-        // modo que não seja FULLSCREEN, caso o usuário alterne de volta.
-        if (SidebarSizeManager.getSizeMode(this) != SidebarSizeMode.FULLSCREEN) {
-            params.width = (240 * resources.displayMetrics.density).toInt()
-        }
+        params.width = if (sidebarExpanded) expandedSidebarWidthPx() else collapsedSidebarWidthPx()
         sidebarRoot.layoutParams = params
     }
 
     /**
      * Popup com as 4 opções de tamanho da sidebar (padrão, metade de
      * cima, metade de baixo, tela toda) - aberto pelo botão de
-     * redimensionar no cabeçalho do painel. Escolha é persistida e
-     * aplicada imediatamente, sem precisar fechar/reabrir a sidebar.
+     * redimensionar, agora no rodapé do painel (sidebarBottomHeader,
+     * junto do hambúrguer e do título "Atalhos"). Escolha é persistida
+     * e aplicada imediatamente, sem precisar recolher/reexpandir a barra.
      */
     private fun showResizeSidebarDialog() {
         val modes = arrayOf(
@@ -495,18 +682,28 @@ class MainActivity : Activity() {
 
     /**
      * Reconstrói a lista de atalhos de função da sidebar a partir de
-     * SidebarPrefsManager.visibleFunctions() - chamado no onCreate e
+     * SidebarPrefsManager.visibleFunctions() - chamado no onCreate,
      * sempre que a visibilidade de algum atalho muda (popup de
-     * gerenciar) ou o modo Desktop/Mobile é alternado (pra atualizar o
-     * rótulo/ícone daquele item específico).
+     * gerenciar), o modo Desktop/Mobile é alternado (pra atualizar o
+     * rótulo/ícone daquele item específico), e toda vez que
+     * sidebarExpanded muda de estado (colapsar esconde o rótulo de cada
+     * item e centraliza só o ícone; expandir traz o rótulo de volta).
      */
     private fun renderSidebarShortcuts() {
         sidebarItemsContainer.removeAllViews()
         val inflater = LayoutInflater.from(this)
         for (function in SidebarPrefsManager.visibleFunctions(this)) {
-            val item = inflater.inflate(R.layout.view_sidebar_item, sidebarItemsContainer, false)
+            val item = inflater.inflate(R.layout.view_sidebar_item, sidebarItemsContainer, false) as LinearLayout
             val icon = item.findViewById<ImageView>(R.id.sidebarItemIcon)
             val label = item.findViewById<TextView>(R.id.sidebarItemLabel)
+
+            // Colapsada: só o ícone, centralizado na faixa fina (o
+            // rótulo com layout_weight="1" não ocupa espaço nenhum
+            // quando GONE, então o item encolhe naturalmente pro
+            // tamanho do ícone). Expandida: layout original, ícone +
+            // rótulo lado a lado alinhados à esquerda da barra.
+            label.visibility = if (sidebarExpanded) View.VISIBLE else View.GONE
+            item.gravity = if (sidebarExpanded) Gravity.CENTER_VERTICAL else Gravity.CENTER
 
             when (function) {
                 SidebarFunction.DEVICE_MODE -> {
@@ -530,7 +727,7 @@ class MainActivity : Activity() {
                     label.text = getString(R.string.sidebar_item_downloads)
                     item.setOnClickListener {
                         startActivity(Intent(this, DownloadsActivity::class.java))
-                        closeSidebar()
+                        collapseSidebar()
                     }
                 }
                 SidebarFunction.SETTINGS -> {
@@ -538,7 +735,7 @@ class MainActivity : Activity() {
                     label.text = getString(R.string.sidebar_item_settings)
                     item.setOnClickListener {
                         startActivity(Intent(this, SettingsActivity::class.java))
-                        closeSidebar()
+                        collapseSidebar()
                     }
                 }
                 SidebarFunction.HISTORY -> {
@@ -548,7 +745,7 @@ class MainActivity : Activity() {
                         // Fase 3: HistoryActivity própria, não mais um
                         // placeholder dentro de SettingsActivity.
                         startActivity(Intent(this, HistoryActivity::class.java))
-                        closeSidebar()
+                        collapseSidebar()
                     }
                 }
             }
@@ -708,10 +905,12 @@ class MainActivity : Activity() {
     override fun onBackPressed() {
         val currentWebView = webView
         when {
-            // Painel lateral aberto tem prioridade sobre qualquer outra
-            // navegação - botão físico/gesto de voltar só fecha o painel,
-            // igual ao comportamento padrão de um drawer/overlay lateral.
-            sidebarRoot.visibility == View.VISIBLE -> closeSidebar()
+            // Barra de atalhos expandida tem prioridade sobre qualquer
+            // outra navegação - botão físico/gesto de voltar só a
+            // recolhe de volta pra faixa fina, igual ao comportamento
+            // padrão de um drawer/overlay lateral (a barra em si nunca
+            // fecha por completo, então não há "fechar" aqui de fato).
+            sidebarExpanded -> collapseSidebar()
             navToolbar.visibility == View.VISIBLE && currentWebView != null && currentWebView.canGoBack() -> {
                 currentWebView.goBack()
             }

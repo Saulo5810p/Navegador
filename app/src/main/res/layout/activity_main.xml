@@ -8,8 +8,9 @@
       Configurações e Histórico saíram daqui e foram pro painel lateral -
       dá mais espaço pra essa barra respirar.
     - contentArea: FrameLayout que contém, empilhados: webViewContainer,
-      homeLayout, sidebarRoot (painel lateral, por cima de tudo quando
-      aberto) e btnOpenSidebar (handle fixo "hamburguer" que abre o painel).
+      homeLayout e sidebarRoot (barra de atalhos, colada na borda "end"
+      da tela, sempre visível - colapsada como uma faixa fina de ícones
+      ou expandida por completo; ver view_sidebar.xml).
     - bottomBar antiga foi removida - Configurações agora é um atalho
       dentro da sidebar (ver view_sidebar.xml).
 -->
@@ -133,36 +134,15 @@
                 android:layout_gravity="center_horizontal" />
         </LinearLayout>
 
-        <!-- Painel lateral de atalhos de função - overlay por cima de
-             Home/WebView, escondido por padrão (visibility="gone" dentro
-             de view_sidebar.xml). Fica depois na ordem de empilhamento
-             pra desenhar por cima quando visível. -->
+        <!-- Barra de atalhos - overlay por cima de Home/WebView, SEMPRE
+             visível (colapsada como faixa fina de ícones por padrão,
+             sem o handle "hambúrguer" flutuante separado que existia
+             antes: o toque/arraste pra expandir agora é a própria barra,
+             ver sidebarDragHandle em view_sidebar.xml). Fica por último
+             na ordem de empilhamento pra desenhar por cima. -->
         <include
             android:id="@+id/sidebarInclude"
             layout="@layout/view_sidebar" />
-
-        <!-- Handle fixo que abre o painel lateral - canto superior
-             esquerdo do contentArea, sempre visível (mesmo local onde o
-             painel nasce). Some quando o painel já está aberto (o botão
-             de fechar fica dentro do próprio painel). -->
-        <FrameLayout
-            android:id="@+id/btnOpenSidebar"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="start|top"
-            android:layout_margin="10dp"
-            android:background="@drawable/bg_shortcut_add_button"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?android:attr/selectableItemBackground">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_menu_hamburger"
-                android:contentDescription="@string/sidebar_open_content_description" />
-        </FrameLayout>
     </FrameLayout>
 
 </LinearLayout>

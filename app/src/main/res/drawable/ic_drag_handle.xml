@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Grip vertical (2 colunas x 3 linhas de pontos) desenhado no centro
+     da alça de arrastar da barra de atalhos (sidebarDragHandle em
+     view_sidebar.xml) - sinaliza visualmente que aquela faixa fina
+     responde a toque/arraste, sem competir com os ícones dos atalhos. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="8dp" android:height="20dp"
+    android:viewportWidth="8" android:viewportHeight="20"
+    android:tint="#9E9E9E">
+    <path android:fillColor="@android:color/black"
+        android:pathData="M1,1 a1,1 0 1,0 0.001,0 Z M7,1 a1,1 0 1,0 0.001,0 Z
+                           M1,9 a1,1 0 1,0 0.001,0 Z M7,9 a1,1 0 1,0 0.001,0 Z
+                           M1,17 a1,1 0 1,0 0.001,0 Z M7,17 a1,1 0 1,0 0.001,0 Z" />
+</vector>

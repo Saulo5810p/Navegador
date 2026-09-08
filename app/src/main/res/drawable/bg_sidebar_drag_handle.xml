@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Faixa vertical sutil atrás do grip (ic_drag_handle) - só uma sombra
+     leve pra indicar "isso aqui puxa", sem desenhar uma borda dura que
+     brigue com a GradientShadowCardView por trás de toda a barra. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#14808080" />
+</shape>

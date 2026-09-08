@@ -25,11 +25,24 @@ object SidebarSizeManager {
     private const val PREFS_NAME = "xaulinxs_browser_prefs"
     private const val KEY_SIZE_MODE = "sidebar_size_mode"
 
+    // Lembra se a barra estava expandida (tudo visível) ou colapsada (só
+    // a faixa fina de ícones) da última vez que o app foi usado -
+    // padrão colapsada (false), já que o pedido era pra ela aparecer
+    // assim sem precisar ser expandida na primeira abertura.
+    private const val KEY_EXPANDED = "sidebar_expanded"
+
     fun getSizeMode(context: Context): SidebarSizeMode =
         SidebarSizeMode.fromId(prefs(context).getString(KEY_SIZE_MODE, SidebarSizeMode.FULL.id))
 
     fun setSizeMode(context: Context, mode: SidebarSizeMode) {
         prefs(context).edit().putString(KEY_SIZE_MODE, mode.id).apply()
+    }
+
+    fun getExpanded(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPANDED, false)
+
+    fun setExpanded(context: Context, expanded: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPANDED, expanded).apply()
     }
 
     private fun prefs(context: Context) =
