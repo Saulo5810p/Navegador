@@ -7,6 +7,7 @@ import android.animation.ValueAnimator
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -46,6 +47,7 @@ import com.xaulinxs.aosp.browser.widget.SidebarPrefsManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeMode
 import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
+import java.io.File
 
 /**
  * Tela principal, estilo Chromium: uma Home com busca grande (nova aba) é
@@ -913,33 +915,45 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Monta a info de kernel exibida na Home e no topo da sidebar - NÃO é
-     * mais um texto fixo/adivinhado a partir do User-Agent (o regex antigo
-     * "Chrome/([0-9.]+)" parseava a string de user agent, que podia ficar
-     * presa numa versão antiga em cache mesmo depois de trocar o provider
-     * via WebViewUpgrade, e nunca trazia o NOME do WebView, só um número).
+     * Monta a info de kernel exibida na Home e no topo da sidebar.
      *
-     * Agora lê direto do PackageInfo real do pacote que está de fato
-     * ativo:
-     * - WebViewUpgrade.getUpgradeWebViewPackageName()/getUpgradeWebViewVersion()
-     *   quando o app conseguiu trocar pro WebView AOSP embutido (o caminho
-     *   normal) - dados extraídos pela própria lib na hora da troca
-     *   (WebViewReplace.REPLACE_WEB_VIEW_PACKAGE_INFO), então refletem
-     *   exatamente o apk que foi carregado, não o que "deveria" estar
-     *   rodando.
-     * - Cai para WebViewUpgrade.getSystemWebViewPackageName()/
-     *   getSystemWebViewPackageVersion() (o provider de WebView do
-     *   sistema) se a troca falhou ou ainda não rodou.
-     * - O NOME (rótulo) vem do PackageManager.getApplicationInfo() do
-     *   pacote resolvido acima, via loadLabel() - o nome de exibição de
-     *   verdade do apk (ex: "Android System WebView", ou o nome que o
-     *   apk AOSP embutido declarar), não um texto nosso hardcoded.
+     * A VERSÃO não vem mais de WebViewUpgrade.getUpgradeWebViewVersion()
+     * como fonte principal - achado depois de reportado que o nome do
+     * pacote aparecia certo mas a versão ficava presa numa antiga: esse
+     * getter (lá na lib vendorizada, WebViewReplace.loadCurrentWebViewPackageInfo())
+     * NÃO lê o .apk que foi de fato carregado - ele pergunta pro
+     * WebViewUpdateService/WebView.getCurrentWebViewPackage() do PRÓPRIO
+     * Android qual é "o" WebView ativo, e esse serviço pode devolver um
+     * PackageInfo cacheado/desatualizado mesmo com o hook de troca
+     * funcionando (o pacote bate porque é só um nome; a versão reportada
+     * pelo serviço do sistema não necessariamente é resolvida de novo a
+     * cada consulta).
+     *
+     * A correção: quando a troca foi reportada como bem-sucedida
+     * (getUpgradeWebViewPackageName() não-nulo), lemos o PackageInfo
+     * DIRETO do arquivo aosp_webview.apk extraído em
+     * filesDir/BrowserApplication.WEBVIEW_ASSET_NAME (o mesmo arquivo que
+     * WebViewUpgrade.upgrade() usou pra trocar) via
+     * PackageManager.getPackageArchiveInfo() - isso lê o
+     * AndroidManifest.xml de dentro do próprio apk e devolve o
+     * versionName/versionCode exatos gravados nele, sem depender de
+     * nenhum cache do sistema. Só cai pro getter da lib
+     * (getUpgradeWebViewVersion()) se por algum motivo esse arquivo não
+     * existir mais ou não puder ser parseado.
      */
     private fun updateKernelInfo() {
-        val packageName = WebViewUpgrade.getUpgradeWebViewPackageName()
-            ?: WebViewUpgrade.getSystemWebViewPackageName()
-        val version = WebViewUpgrade.getUpgradeWebViewVersion()
-            ?: WebViewUpgrade.getSystemWebViewPackageVersion()
+        val upgradedPackageName = WebViewUpgrade.getUpgradeWebViewPackageName()
+
+        val packageName: String?
+        val version: String?
+        if (upgradedPackageName != null) {
+            val archiveInfo = readExtractedWebViewApkInfo()
+            packageName = archiveInfo?.packageName ?: upgradedPackageName
+            version = archiveInfo?.let { formatApkVersion(it) } ?: WebViewUpgrade.getUpgradeWebViewVersion()
+        } else {
+            packageName = WebViewUpgrade.getSystemWebViewPackageName()
+            version = WebViewUpgrade.getSystemWebViewPackageVersion()
+        }
 
         val label = packageName?.let { webViewPackageLabel(it) } ?: getString(R.string.kernel_name_unknown)
         val versionText = version ?: getString(R.string.kernel_version_unknown)
@@ -950,6 +964,47 @@ class MainActivity : Activity() {
         // Mesma informação também no topo da sidebar, pra quem navega
         // com o painel expandido e não passa pela Home.
         sidebarWebViewVersion.text = infoText
+    }
+
+    /**
+     * Lê o PackageInfo real direto do arquivo .apk extraído pro
+     * armazenamento privado do app (ver BrowserApplication.kt) -
+     * PackageManager.getPackageArchiveInfo() parseia o
+     * AndroidManifest.xml de dentro do arquivo sem precisar que ele
+     * esteja "instalado" de verdade, então reflete exatamente o que está
+     * gravado nesse apk específico, ignorando qualquer cache do
+     * WebViewUpdateService do sistema. Retorna null se o arquivo não
+     * existir (troca ainda não rodou/falhou) ou não puder ser parseado.
+     */
+    private fun readExtractedWebViewApkInfo(): PackageInfo? {
+        val apkFile = File(filesDir, BrowserApplication.WEBVIEW_ASSET_NAME)
+        if (!apkFile.exists()) return null
+        return try {
+            packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * versionName sozinho (ex: "116.0.5845.0") já é o de sempre, mas
+     * inclui o versionCode entre parênteses quando disponível - um
+     * número inteiro que só existe pra identificar builds de forma
+     * inequívoca, útil aqui como confirmação extra de que a versão
+     * exibida é mesmo a do apk certo (o motivo de tudo isso ter sido
+     * revisado). getLongVersionCode() só existe a partir do API 28; em
+     * versões antigas cai pro campo versionCode (int, deprecated mas
+     * funcional).
+     */
+    private fun formatApkVersion(packageInfo: PackageInfo): String? {
+        val versionName = packageInfo.versionName ?: return null
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode.toLong()
+        }
+        return "$versionName ($versionCode)"
     }
 
     /**
