@@ -15,6 +15,7 @@
     <string name="sidebar_item_downloads">Downloads</string>
     <string name="sidebar_item_settings">Configurações</string>
     <string name="sidebar_item_history">Histórico</string>
+    <string name="sidebar_item_zoom">Zoom</string>
     <string name="sidebar_drag_handle_content_description">Arrastar para expandir ou recolher a barra de atalhos</string>
     <string name="sidebar_manage_shortcuts_title">Atalhos da barra lateral</string>
     <string name="sidebar_resize_content_description">Redimensionar painel</string>
@@ -36,7 +37,14 @@
     <string name="search_hint">Pesquisar ou digitar um endereço</string>
     <string name="search_icon_description">Buscar</string>
     <string name="kernel_loading">Carregando kernel AOSP...</string>
-    <string name="kernel_info_format">AOSP Webview %1$s  •  %2$s</string>
+    <!-- %1$s = nome/rótulo do app do WebView (ex: "Android System WebView"),
+         %2$s = versionName exato lido do PackageInfo real (não mais um
+         texto fixo), %3$s = nome do pacote (ex: com.google.android.webview
+         ou o pacote do apk AOSP embutido, dependendo do que estiver ativo). -->
+    <string name="kernel_info_format">%1$s %2$s  •  %3$s</string>
+    <string name="kernel_version_unknown">versão desconhecida</string>
+    <string name="kernel_package_unknown">pacote desconhecido</string>
+    <string name="kernel_name_unknown">WebView</string>
     <string name="bottom_bar_settings">Configurações</string>
     <string name="settings_title">Configurações</string>
     <string name="settings_search_engine">Mecanismo de busca</string>
@@ -56,4 +64,8 @@
     <string name="settings_theme_system">Padrão do sistema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Escuro</string>
+    <string name="settings_zoom_title">Zoom da página</string>
+    <string name="zoom_dialog_title">Zoom da página</string>
+    <string name="zoom_percent_format">%d%%</string>
+    <string name="zoom_reset">Redefinir (100%)</string>
 </resources>

@@ -13,8 +13,10 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
 import com.xaulinxs.funcoes.FileManagerActivity
 import com.xaulinxs.funcoes.SearchEngineManager
 import com.xaulinxs.funcoes.ThemeManager
@@ -54,6 +56,7 @@ class SettingsActivity : Activity() {
         }
 
         setupThemeSelector()
+        setupZoomSlider()
         renderSearchEngines()
     }
 
@@ -78,6 +81,37 @@ class SettingsActivity : Activity() {
             ThemeManager.setThemeMode(this, mode)
             recreate()
         }
+    }
+
+    /**
+     * Slider de zoom da página (50%-200%) embutido na tela de
+     * Configurações - mesmo ZoomPrefsManager do popup rápido aberto pela
+     * sidebar (MainActivity.showZoomDialog()), então os dois ficam
+     * sempre sincronizados. Diferente do popup, não dá preview ao vivo
+     * numa página (essa tela não tem WebView) - só persiste o valor, que
+     * é aplicado na próxima vez que uma página carregar ou o popup da
+     * sidebar for aberto.
+     */
+    private fun setupZoomSlider() {
+        val percentLabel = findViewById<TextView>(R.id.zoomPercentLabel)
+        val seekBar = findViewById<SeekBar>(R.id.zoomSeekBar)
+
+        seekBar.max = ZoomPrefsManager.MAX_PERCENT - ZoomPrefsManager.MIN_PERCENT
+        val currentPercent = ZoomPrefsManager.getZoomPercent(this)
+        seekBar.progress = currentPercent - ZoomPrefsManager.MIN_PERCENT
+        percentLabel.text = getString(R.string.zoom_percent_format, currentPercent)
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                val percent = progress + ZoomPrefsManager.MIN_PERCENT
+                percentLabel.text = getString(R.string.zoom_percent_format, percent)
+                if (fromUser) {
+                    ZoomPrefsManager.setZoomPercent(this@SettingsActivity, percent)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
     }
 
     companion object {

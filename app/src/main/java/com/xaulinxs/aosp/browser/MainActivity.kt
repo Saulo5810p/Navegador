@@ -23,7 +23,6 @@ import androidx.core.content.ContextCompat
 import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
@@ -31,6 +30,7 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import com.norman.webviewup.lib.UpgradeCallback
@@ -45,6 +45,7 @@ import com.xaulinxs.aosp.browser.widget.SidebarFunction
 import com.xaulinxs.aosp.browser.widget.SidebarPrefsManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeMode
+import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
 
 /**
  * Tela principal, estilo Chromium: uma Home com busca grande (nova aba) é
@@ -111,8 +112,6 @@ class MainActivity : Activity() {
     // Chromium) - sinaliza que, assim que a Home estiver visível, o
     // campo de busca deve receber foco e abrir o teclado automaticamente.
     private var focusSearchOnHomeRequested = false
-
-    private val webViewVersionRegex = Regex("Chrome/([0-9.]+)")
 
     companion object {
         /** Extra usado pelo BrowserSearchWidgetProvider para abrir o app já com o foco no campo de busca. */
@@ -759,6 +758,18 @@ class MainActivity : Activity() {
                         collapseSidebar()
                     }
                 }
+                SidebarFunction.ZOOM -> {
+                    icon.setImageResource(R.drawable.ic_zoom)
+                    label.text = getString(R.string.sidebar_item_zoom)
+                    item.setOnClickListener {
+                        // Recolhe a barra antes de abrir o popup, pra
+                        // sobrar a tela toda mostrando o preview em
+                        // tempo real do zoom na página por trás do
+                        // diálogo.
+                        collapseSidebar()
+                        showZoomDialog()
+                    }
+                }
             }
             sidebarItemsContainer.addView(item)
         }
@@ -779,6 +790,7 @@ class MainActivity : Activity() {
                 SidebarFunction.DOWNLOADS -> getString(R.string.sidebar_item_downloads)
                 SidebarFunction.SETTINGS -> getString(R.string.sidebar_item_settings)
                 SidebarFunction.HISTORY -> getString(R.string.sidebar_item_history)
+                SidebarFunction.ZOOM -> getString(R.string.sidebar_item_zoom)
             }
         }.toTypedArray()
         val checkedStates = allFunctions.map { SidebarPrefsManager.isVisible(this, it) }.toBooleanArray()
@@ -835,6 +847,11 @@ class MainActivity : Activity() {
                 // rótulo de exibição, caindo pra própria URL se o título
                 // ainda não estiver disponível.
                 HistoryManager.addVisit(this@MainActivity, view?.title, url)
+                // Reaplica o zoom salvo (ZoomPrefsManager) a cada página
+                // nova - o CSS injetado não sobrevive de uma navegação
+                // pra outra, então precisa reinjetar sempre que o
+                // documento termina de carregar.
+                applyPageZoom(view)
             }
         }
 
@@ -895,17 +912,139 @@ class MainActivity : Activity() {
         renderSidebarShortcuts()
     }
 
+    /**
+     * Monta a info de kernel exibida na Home e no topo da sidebar - NÃO é
+     * mais um texto fixo/adivinhado a partir do User-Agent (o regex antigo
+     * "Chrome/([0-9.]+)" parseava a string de user agent, que podia ficar
+     * presa numa versão antiga em cache mesmo depois de trocar o provider
+     * via WebViewUpgrade, e nunca trazia o NOME do WebView, só um número).
+     *
+     * Agora lê direto do PackageInfo real do pacote que está de fato
+     * ativo:
+     * - WebViewUpgrade.getUpgradeWebViewPackageName()/getUpgradeWebViewVersion()
+     *   quando o app conseguiu trocar pro WebView AOSP embutido (o caminho
+     *   normal) - dados extraídos pela própria lib na hora da troca
+     *   (WebViewReplace.REPLACE_WEB_VIEW_PACKAGE_INFO), então refletem
+     *   exatamente o apk que foi carregado, não o que "deveria" estar
+     *   rodando.
+     * - Cai para WebViewUpgrade.getSystemWebViewPackageName()/
+     *   getSystemWebViewPackageVersion() (o provider de WebView do
+     *   sistema) se a troca falhou ou ainda não rodou.
+     * - O NOME (rótulo) vem do PackageManager.getApplicationInfo() do
+     *   pacote resolvido acima, via loadLabel() - o nome de exibição de
+     *   verdade do apk (ex: "Android System WebView", ou o nome que o
+     *   apk AOSP embutido declarar), não um texto nosso hardcoded.
+     */
     private fun updateKernelInfo() {
-        val userAgent = WebSettings.getDefaultUserAgent(this)
-        val webViewVersion = webViewVersionRegex.find(userAgent)?.groupValues?.get(1) ?: "desconhecida"
         val packageName = WebViewUpgrade.getUpgradeWebViewPackageName()
             ?: WebViewUpgrade.getSystemWebViewPackageName()
-            ?: "desconhecido"
-        val infoText = getString(R.string.kernel_info_format, webViewVersion, packageName)
+        val version = WebViewUpgrade.getUpgradeWebViewVersion()
+            ?: WebViewUpgrade.getSystemWebViewPackageVersion()
+
+        val label = packageName?.let { webViewPackageLabel(it) } ?: getString(R.string.kernel_name_unknown)
+        val versionText = version ?: getString(R.string.kernel_version_unknown)
+        val packageText = packageName ?: getString(R.string.kernel_package_unknown)
+
+        val infoText = getString(R.string.kernel_info_format, label, versionText, packageText)
         kernelInfo.text = infoText
-        // Mesma informação também no rodapé da sidebar, pra quem navega
-        // com o painel aberto e não passa pela Home.
+        // Mesma informação também no topo da sidebar, pra quem navega
+        // com o painel expandido e não passa pela Home.
         sidebarWebViewVersion.text = infoText
+    }
+
+    /**
+     * Nome de exibição (label) do apk do WebView identificado pelo pacote
+     * informado - lido direto do PackageManager, não um texto nosso. Cai
+     * pro próprio nome do pacote se o PackageManager não conseguir
+     * resolver o ApplicationInfo (pacote não instalado como app comum
+     * visível, por exemplo).
+     */
+    private fun webViewPackageLabel(packageName: String): String {
+        return try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            appInfo.loadLabel(packageManager).toString()
+        } catch (e: PackageManager.NameNotFoundException) {
+            packageName
+        }
+    }
+
+    /**
+     * Aplica o zoom de página (ZoomPrefsManager, 50%-200%) na WebView via
+     * injeção de JavaScript, ajustando a propriedade CSS não-padrão
+     * "zoom" do elemento raiz do documento - suportada pelo motor
+     * Chromium por trás do WebView AOSP (é a mesma usada pelo próprio
+     * Chrome/Chromium internamente pro zoom de página do desktop), o que
+     * dá um zoom visual de verdade (imagens, layout, tudo escala junto),
+     * diferente de só aumentar o tamanho do texto
+     * (WebSettings.textZoom, que deixa o resto do layout do tamanho
+     * original).
+     *
+     * Reaplicado a cada "onPageFinished" (o estilo injetado não
+     * sobrevive a uma navegação nova) e toda vez que o usuário mexe no
+     * slider (showZoomDialog()/SettingsActivity), pra dar o preview
+     * imediato na página que já está carregada.
+     */
+    private fun applyPageZoom(view: WebView?, percent: Int = ZoomPrefsManager.getZoomPercent(this)) {
+        view?.evaluateJavascript(
+            "document.documentElement.style.zoom='${percent}%';",
+            null
+        )
+    }
+
+    /**
+     * Popup rápido de zoom, aberto pelo atalho "Zoom" da sidebar - slider
+     * de 50% a 200% (SeekBar puro, sem Material) com preview em tempo
+     * real na página atual e um botão pra voltar a 100%. O valor
+     * escolhido é persistido em ZoomPrefsManager, então continua valendo
+     * na próxima página/próxima abertura do app, e fica em sincronia com
+     * o slider equivalente em SettingsActivity.
+     */
+    private fun showZoomDialog() {
+        val density = resources.displayMetrics.density
+        val padding = (20 * density).toInt()
+
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+        container.setPadding(padding, padding, padding, padding)
+
+        val percentLabel = TextView(this)
+        percentLabel.textSize = 16f
+        percentLabel.gravity = Gravity.CENTER
+        container.addView(percentLabel)
+
+        val seekBar = SeekBar(this)
+        // SeekBar não tem "min" configurável de forma confiável antes da
+        // API 26 (android:min só passou a funcionar no O) - o range real
+        // é sempre 0..max aqui, e a conversão pra porcentagem (50-200) é
+        // feita manualmente somando/subtraindo MIN_PERCENT.
+        seekBar.max = ZoomPrefsManager.MAX_PERCENT - ZoomPrefsManager.MIN_PERCENT
+        val currentPercent = ZoomPrefsManager.getZoomPercent(this)
+        seekBar.progress = currentPercent - ZoomPrefsManager.MIN_PERCENT
+        percentLabel.text = getString(R.string.zoom_percent_format, currentPercent)
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                val percent = progress + ZoomPrefsManager.MIN_PERCENT
+                percentLabel.text = getString(R.string.zoom_percent_format, percent)
+                if (fromUser) {
+                    ZoomPrefsManager.setZoomPercent(this@MainActivity, percent)
+                    applyPageZoom(webView, percent)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
+        container.addView(seekBar)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.zoom_dialog_title)
+            .setView(container)
+            .setNeutralButton(R.string.zoom_reset) { _, _ ->
+                ZoomPrefsManager.setZoomPercent(this, ZoomPrefsManager.DEFAULT_PERCENT)
+                applyPageZoom(webView, ZoomPrefsManager.DEFAULT_PERCENT)
+            }
+            .setPositiveButton(R.string.dialog_done, null)
+            .show()
     }
 
     override fun onDestroy() {

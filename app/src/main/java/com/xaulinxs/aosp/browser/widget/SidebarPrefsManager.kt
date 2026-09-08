@@ -4,7 +4,7 @@ import android.content.Context
 
 /**
  * Define quais atalhos de FUNÇÃO (Desktop/Mobile, Downloads,
- * Configurações, Histórico) aparecem na sidebar, e em que ordem. O
+ * Configurações, Histórico, Zoom) aparecem na sidebar, e em que ordem. O
  * usuário controla isso pelo popup aberto no botão "+" do rodapé da
  * sidebar (MainActivity.showManageSidebarShortcutsDialog()).
  *
@@ -15,7 +15,8 @@ enum class SidebarFunction(val id: String) {
     DEVICE_MODE("device_mode"),
     DOWNLOADS("downloads"),
     SETTINGS("settings"),
-    HISTORY("history");
+    HISTORY("history"),
+    ZOOM("zoom");
 
     companion object {
         fun fromId(id: String): SidebarFunction? = values().find { it.id == id }

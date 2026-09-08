@@ -84,6 +84,38 @@
             android:background="#E0E0E0"
             android:layout_marginBottom="16dp" />
 
+        <!-- Zoom da página: mesmo slider/valor do popup rápido aberto
+             pela sidebar (MainActivity.showZoomDialog()) - os dois
+             leem/escrevem ZoomPrefsManager, então ficam sempre em
+             sincronia. Aqui fica embutido na tela em vez de popup,
+             consistente com o resto das seções de Configurações. -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_zoom_title"
+            android:textSize="15sp"
+            android:textColor="#616161"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/zoomPercentLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:layout_marginBottom="4dp" />
+
+        <SeekBar
+            android:id="@+id/zoomSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginBottom="16dp" />
+
         <!-- Item de menu: lista de Downloads (o que faltava para o
              usuário conseguir ver/abrir/excluir arquivos baixados pelo
              DownloadManager) -->
