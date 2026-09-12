@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mesmo conteúdo de ic_launcher.xml - a versão "round" existe só pra
+     compatibilidade com launchers antigos que pedem um recurso
+     ic_launcher_round separado; a partir do ícone adaptativo (API 26+)
+     é o próprio sistema quem decide a máscara (redonda ou não), então
+     as duas camadas abaixo podem ser exatamente as mesmas. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

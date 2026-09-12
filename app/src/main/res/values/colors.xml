@@ -5,4 +5,10 @@
          que já respeitam claro/escuro automaticamente via
          Theme.DeviceDefault.DayNight - nenhuma cor fixa sobrando que
          quebraria no modo escuro. -->
+
+    <!-- Fundo do ícone adaptativo (mipmap-anydpi-v26/ic_launcher.xml) -
+         tom escuro extraído da própria imagem do globo (Icon_webview.png),
+         pra combinar com o ciano/magenta do primeiro plano em vez de uma
+         cor genérica qualquer. -->
+    <color name="ic_launcher_background">#123A52</color>
 </resources>

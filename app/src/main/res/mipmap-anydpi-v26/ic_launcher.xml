@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone adaptativo (Android 8+/API 26): o sistema/launcher aplica sua
+     própria máscara (círculo, "squircle", cantos arredondados etc.) por
+     cima dessas duas camadas - por isso o globo (ic_launcher_foreground)
+     foi gerado ocupando só a "zona segura" central (~66% do canvas de
+     108dp), sem risco de ser cortado nas bordas independente da máscara
+     do aparelho. O fundo é uma cor sólida (média das cores do próprio
+     globo, ver ic_launcher_background em colors.xml) em vez de uma
+     imagem, pra ficar leve e sem nenhuma textura brigando com o globo.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>
