@@ -32,9 +32,17 @@
     <string name="downloads_delete_confirm_message">O arquivo \"%1$s\" será removido da lista e apagado do dispositivo.</string>
     <string name="downloads_open_content_description">Abrir arquivo</string>
     <string name="downloads_delete_content_description">Excluir arquivo</string>
+    <string name="downloads_retry">Baixar novamente</string>
     <string name="dialog_done">Concluído</string>
     <string name="app_name">AOSP WebView Browser</string>
     <string name="search_hint">Pesquisar ou digitar um endereço</string>
+    <string name="voice_search_content_description">Buscar por voz</string>
+    <string name="voice_search_listening">Ouvindo…</string>
+    <string name="voice_search_cancel">Cancelar</string>
+    <string name="voice_search_error_no_match">Não entendi, tenta de novo</string>
+    <string name="voice_search_error_no_permission">Permissão de microfone negada</string>
+    <string name="voice_search_error_unavailable">Reconhecimento de voz indisponível neste aparelho</string>
+    <string name="voice_search_error_generic">Não foi possível ouvir agora</string>
     <string name="search_icon_description">Buscar</string>
     <string name="kernel_loading">Carregando kernel AOSP...</string>
     <!-- %1$s = nome/rótulo do app do WebView (ex: "Android System WebView"),

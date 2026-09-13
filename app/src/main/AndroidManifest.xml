@@ -31,6 +31,22 @@
          (o Foreground Service continua rodando normalmente). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Busca por voz (barra de busca da Home e widget), via
+         android.speech.SpeechRecognizer nativo com popup próprio do app -
+         precisa de permissão de runtime a partir do Android 6 (API 23)
+         pra capturar áudio do microfone. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Obrigatório a partir do Android 11 (API 30): sem declarar esse
+         <queries>, PackageManager não enxerga o serviço de reconhecimento
+         de voz do sistema (visibilidade de pacotes) e
+         SpeechRecognizer.isRecognitionAvailable() sempre volta false. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name=".BrowserApplication"
         android:allowBackup="true"

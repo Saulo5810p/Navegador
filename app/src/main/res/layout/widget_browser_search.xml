@@ -12,6 +12,14 @@
     launcher estica este mesmo layout, então não depende de código extra
     pra funcionar em tamanhos maiores (o texto e o ícone continuam
     centralizados verticalmente pela altura real da célula).
+
+    O ícone de microfone (canto oposto da lupa) tem seu próprio clique
+    (widgetMicIcon), separado do resto da cápsula (widgetContentArea) -
+    RemoteViews permite click regions distintas dentro do mesmo widget,
+    então cada ícone dispara um PendingIntent diferente (ver
+    BrowserSearchWidgetProvider): o resto da cápsula abre a Home com o
+    campo de busca em foco, o microfone abre a Home já disparando o
+    popup de busca por voz (SpeechRecognizer nativo, ver VoiceSearchDialog).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widgetRoot"
@@ -23,23 +31,40 @@
     android:paddingStart="20dp"
     android:paddingEnd="20dp">
 
+    <LinearLayout
+        android:id="@+id/widgetContentArea"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/widgetSearchIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_search"
+            android:contentDescription="@string/widget_search_hint" />
+
+        <TextView
+            android:id="@+id/widgetSearchLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="@string/widget_search_hint"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="?android:attr/textColorSecondary" />
+    </LinearLayout>
+
     <ImageView
-        android:id="@+id/widgetSearchIcon"
+        android:id="@+id/widgetMicIcon"
         android:layout_width="22dp"
         android:layout_height="22dp"
-        android:src="@drawable/ic_search"
-        android:contentDescription="@string/widget_search_hint" />
-
-    <TextView
-        android:id="@+id/widgetSearchLabel"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:layout_marginStart="14dp"
-        android:text="@string/widget_search_hint"
-        android:textSize="15sp"
-        android:singleLine="true"
-        android:ellipsize="end"
-        android:textColor="?android:attr/textColorSecondary" />
+        android:src="@drawable/ic_mic"
+        android:contentDescription="@string/voice_search_content_description" />
 
 </LinearLayout>

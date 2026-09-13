@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Conteúdo do popup de busca por voz (ver VoiceSearchDialog.kt), exibido
+    dentro de um AlertDialog.Builder padrão do framework (mesmo padrão dos
+    outros popups do app, ver showZoomDialog()/showManageSidebarShortcutsDialog()
+    em MainActivity) - sem Material, só views nativas.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="32dp">
+
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_mic"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/voiceSearchStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:text="@string/voice_search_listening" />
+
+</LinearLayout>

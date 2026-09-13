@@ -46,6 +46,7 @@ import com.xaulinxs.aosp.browser.widget.SidebarFunction
 import com.xaulinxs.aosp.browser.widget.SidebarPrefsManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeMode
+import com.xaulinxs.aosp.browser.widget.VoiceSearchDialog
 import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
 import java.io.File
 
@@ -75,6 +76,7 @@ class MainActivity : Activity() {
     private lateinit var homeLayout: LinearLayout
     private lateinit var navToolbar: FrameLayout
     private lateinit var searchInput: EditText
+    private lateinit var searchMicIcon: ImageView
     private lateinit var urlEditText: EditText
     private lateinit var btnBack: ImageButton
     private lateinit var btnReload: ImageButton
@@ -115,11 +117,20 @@ class MainActivity : Activity() {
     // campo de busca deve receber foco e abrir o teclado automaticamente.
     private var focusSearchOnHomeRequested = false
 
+    // true quando o app foi aberto pelo ícone de microfone do widget de
+    // busca - sinaliza que, assim que a Home estiver visível, o popup de
+    // busca por voz deve abrir sozinho (sem precisar tocar de novo no
+    // ícone dentro do app).
+    private var voiceSearchOnHomeRequested = false
+
     companion object {
         /** Extra usado pelo BrowserSearchWidgetProvider para abrir o app já com o foco no campo de busca. */
         const val EXTRA_FOCUS_SEARCH = "com.xaulinxs.aosp.browser.extra.FOCUS_SEARCH"
+        /** Extra usado pelo BrowserSearchWidgetProvider para abrir o app já disparando a busca por voz. */
+        const val EXTRA_START_VOICE_SEARCH = "com.xaulinxs.aosp.browser.extra.START_VOICE_SEARCH"
         private const val REQUEST_CODE_FILE_CHOOSER = 100
         private const val REQUEST_CODE_NOTIFICATIONS = 101
+        private const val REQUEST_CODE_RECORD_AUDIO = 102
         private const val TAG = "MainActivity"
 
         // Largura da barra de atalhos colapsada (só ícones) e a largura
@@ -166,6 +177,8 @@ class MainActivity : Activity() {
         // findViewById busca na árvore inteira, não só no include direto.
         navToolbar = findViewById(R.id.navToolbarInclude)
         searchInput = findViewById(R.id.searchInput)
+        searchMicIcon = findViewById(R.id.searchMicIcon)
+        searchMicIcon.setOnClickListener { startVoiceSearch() }
         urlEditText = findViewById(R.id.urlEditText)
         btnBack = findViewById(R.id.btnBack)
         btnReload = findViewById(R.id.btnReload)
@@ -244,6 +257,7 @@ class MainActivity : Activity() {
         // Se veio do widget de busca, a Home já começa visível por padrão
         // (nenhum webView carregado ainda) - só falta focar o campo.
         applyPendingSearchFocusIfNeeded()
+        applyPendingVoiceSearchIfNeeded()
 
         when {
             WebViewUpgrade.isCompleted() -> initWebView()
@@ -265,6 +279,7 @@ class MainActivity : Activity() {
         super.onNewIntent(intent)
         handleViewIntent(intent)
         applyPendingSearchFocusIfNeeded()
+        applyPendingVoiceSearchIfNeeded()
         pendingExternalUrl?.let { url ->
             val currentWebView = webView
             if (currentWebView != null) {
@@ -317,6 +332,11 @@ class MainActivity : Activity() {
         if (intent?.getBooleanExtra(EXTRA_FOCUS_SEARCH, false) == true) {
             focusSearchOnHomeRequested = true
         }
+        // Vindo do ícone de microfone do widget de busca: mostra a Home e
+        // já abre o popup de busca por voz sozinho.
+        if (intent?.getBooleanExtra(EXTRA_START_VOICE_SEARCH, false) == true) {
+            voiceSearchOnHomeRequested = true
+        }
     }
 
     /**
@@ -331,6 +351,59 @@ class MainActivity : Activity() {
         searchInput.requestFocus()
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
         imm?.showSoftInput(searchInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    /**
+     * Abre o popup de busca por voz pendente, se solicitado pelo ícone de
+     * microfone do widget. Mesmo padrão de applyPendingSearchFocusIfNeeded():
+     * chamado depois que a Home já está pronta, já que o Intent pode
+     * chegar antes da UI estar totalmente montada.
+     */
+    private fun applyPendingVoiceSearchIfNeeded() {
+        if (!voiceSearchOnHomeRequested) return
+        voiceSearchOnHomeRequested = false
+        showHome()
+        startVoiceSearch()
+    }
+
+    /**
+     * Ponto de entrada da busca por voz (ícone de microfone da Home e do
+     * widget): confirma a permissão de microfone antes de abrir o popup
+     * próprio do app (VoiceSearchDialog, via SpeechRecognizer nativo).
+     */
+    private fun startVoiceSearch() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasPermission) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_CODE_RECORD_AUDIO
+            )
+            return
+        }
+
+        VoiceSearchDialog(this) { recognizedText ->
+            searchInput.setText(recognizedText)
+            searchInput.setSelection(recognizedText.length)
+            submitQuery(recognizedText)
+        }.show()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_RECORD_AUDIO) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                startVoiceSearch()
+            } else {
+                Toast.makeText(this, R.string.voice_search_error_no_permission, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     /** Decide se o texto digitado é uma URL válida ou um termo de busca, e navega. */

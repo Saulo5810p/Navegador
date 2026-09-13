@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone de microfone usado no canto oposto à lupa (barra de busca da
+     Home e widget) para iniciar a busca por voz via SpeechRecognizer
+     nativo do Android. Vetor simples, no mesmo estilo/tamanho de
+     ic_search.xml. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp" android:height="20dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="#757575">
+    <path android:fillColor="@android:color/black"
+        android:pathData="M12,14 C13.66,14 14.99,12.66 14.99,11 L15,5 C15,3.34 13.66,2 12,2 C10.34,2 9,3.34 9,5 L9,11 C9,12.66 10.34,14 12,14 Z" />
+    <path android:fillColor="@android:color/black"
+        android:pathData="M17.3,11 C17.3,14 14.76,16.1 12,16.1 C9.24,16.1 6.7,14 6.7,11 L5,11 C5,14.41 7.72,17.23 11,17.72 L11,21 L13,21 L13,17.72 C16.28,17.23 19,14.41 19,11 Z" />
+</vector>

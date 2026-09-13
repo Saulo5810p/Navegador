@@ -101,6 +101,20 @@
                         android:imeOptions="actionGo"
                         android:singleLine="true"
                         android:textSize="18sp" />
+
+                    <!-- Ícone de microfone no canto oposto da lupa: abre a
+                         busca por voz (SpeechRecognizer nativo, popup
+                         próprio do app - ver VoiceSearchDialog). -->
+                    <ImageView
+                        android:id="@+id/searchMicIcon"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_marginStart="14dp"
+                        android:src="@drawable/ic_mic"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/voice_search_content_description" />
                 </LinearLayout>
             </FrameLayout>
 
