@@ -194,8 +194,66 @@ class SettingsActivity : Activity() {
             radio.setOnClickListener {
                 SearchEngineManager.setActiveEngine(this, engine.name)
             }
+            // Mesmo padrão do atalho na Home (MainActivity.showEditShortcutDialog):
+            // pressionar-e-segurar abre popup de editar/excluir. Só faz
+            // sentido para mecanismos customizados - os fixos (Google,
+            // Bing, DuckDuckGo) não são editáveis nem removíveis.
+            if (!engine.builtIn) {
+                radio.setOnLongClickListener {
+                    showEditEngineDialog(engine)
+                    true
+                }
+            }
             searchEngineGroup.addView(radio)
         }
+    }
+
+    /**
+     * Popup de pressionar-e-segurar em cima de um mecanismo de busca
+     * customizado na tela de Configurações: permite editar nome/link
+     * (Salvar) ou excluir o mecanismo. Mesmo esqueleto de
+     * showAddEngineDialog(), pré-preenchido com os valores atuais e com
+     * um terceiro botão neutro pra exclusão - idêntico ao padrão de
+     * MainActivity.showEditShortcutDialog() para atalhos da Home.
+     */
+    private fun showEditEngineDialog(engine: SearchEngineManager.Engine) {
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        container.setPadding(padding, padding, padding, padding)
+
+        val nameInput = EditText(this)
+        nameInput.hint = getString(R.string.add_search_engine_name_hint)
+        nameInput.setText(engine.name)
+        container.addView(nameInput)
+
+        val urlInput = EditText(this)
+        urlInput.hint = getString(R.string.add_search_engine_url_hint)
+        urlInput.setText(engine.urlTemplate)
+        container.addView(urlInput)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_edit_search_engine)
+            .setView(container)
+            .setPositiveButton(R.string.shortcuts_dialog_save) { _, _ ->
+                val name = nameInput.text.toString().trim()
+                var url = urlInput.text.toString().trim()
+                if (name.isEmpty() || url.isEmpty()) {
+                    Toast.makeText(this, R.string.shortcuts_dialog_invalid, Toast.LENGTH_SHORT).show()
+                } else {
+                    if (!url.contains("://")) {
+                        url = "https://$url"
+                    }
+                    SearchEngineManager.updateCustomEngine(this, engine, name, url)
+                    renderSearchEngines()
+                }
+            }
+            .setNeutralButton(R.string.shortcuts_dialog_delete) { _, _ ->
+                SearchEngineManager.removeCustomEngine(this, engine)
+                renderSearchEngines()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     private fun showAddEngineDialog() {

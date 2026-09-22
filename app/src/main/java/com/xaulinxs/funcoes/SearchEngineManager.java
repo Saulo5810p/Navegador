@@ -70,9 +70,45 @@ public final class SearchEngineManager {
     public static void addCustomEngine(Context context, String name, String urlTemplate) {
         List<Engine> current = customEngines(context);
         current.add(new Engine(name, urlTemplate, false));
+        persistCustom(context, current);
+    }
+
+    public static void removeCustomEngine(Context context, Engine engine) {
+        List<Engine> current = customEngines(context);
+        current.removeIf(e -> e.name.equals(engine.name) && e.urlTemplate.equals(engine.urlTemplate));
+        persistCustom(context, current);
+        // Se o motor removido era o ativo, volta pro padrão (Google).
+        if (prefs(context).getString(KEY_ACTIVE_ENGINE, "Google").equals(engine.name)) {
+            setActiveEngine(context, builtInEngines().get(0).name);
+        }
+    }
+
+    /**
+     * Edita um mecanismo customizado no lugar, preservando a posição na
+     * lista - usado pelo popup de "pressionar e segurar" em cima de um
+     * mecanismo na tela de Configurações. Mesmo padrão de
+     * ShortcutManager.updateShortcut(). Se o motor editado era o ativo,
+     * a seleção ativa acompanha o novo nome.
+     */
+    public static void updateCustomEngine(Context context, Engine oldEngine, String newName, String newUrl) {
+        List<Engine> current = customEngines(context);
+        for (int i = 0; i < current.size(); i++) {
+            Engine e = current.get(i);
+            if (e.name.equals(oldEngine.name) && e.urlTemplate.equals(oldEngine.urlTemplate)) {
+                current.set(i, new Engine(newName, newUrl, false));
+                break;
+            }
+        }
+        persistCustom(context, current);
+        if (prefs(context).getString(KEY_ACTIVE_ENGINE, "Google").equals(oldEngine.name)) {
+            setActiveEngine(context, newName);
+        }
+    }
+
+    private static void persistCustom(Context context, List<Engine> engines) {
         JSONArray array = new JSONArray();
         try {
-            for (Engine engine : current) {
+            for (Engine engine : engines) {
                 JSONObject obj = new JSONObject();
                 obj.put("name", engine.name);
                 obj.put("url", engine.urlTemplate);
@@ -84,6 +120,7 @@ public final class SearchEngineManager {
     }
 
     public static Engine activeEngine(Context context) {
+
         String activeName = prefs(context).getString(KEY_ACTIVE_ENGINE, "Google");
         for (Engine engine : allEngines(context)) {
             if (engine.name.equals(activeName)) return engine;

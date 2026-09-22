@@ -62,6 +62,7 @@
     <string name="settings_title">Configurações</string>
     <string name="settings_search_engine">Mecanismo de busca</string>
     <string name="settings_add_search_engine">Adicionar mecanismo de busca</string>
+    <string name="settings_edit_search_engine">Editar mecanismo de busca</string>
     <string name="settings_downloads">Downloads</string>
     <string name="settings_file_manager">Gerenciador de arquivos</string>
     <string name="downloads_empty">Nenhum download ainda</string>
