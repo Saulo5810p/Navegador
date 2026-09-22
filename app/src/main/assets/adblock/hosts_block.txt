@@ -1,0 +1,108 @@
+# Lista de bloqueio do adblock embutido (ver AdBlockManager.kt).
+# Um domínio por linha. Bloquear um domínio aqui bloqueia automaticamente
+# TODOS os subdomínios dele também (ver a lógica de sufixo em
+# AdBlockManager.isBlocked) - por isso a lista guarda só os domínios-base
+# das maiores redes de anúncio/rastreamento, sem precisar listar cada
+# subdomínio (ad1.example.com, ad2.example.com, etc. viram redundantes).
+# Linhas em branco e começadas com "#" são ignoradas.
+#
+# Curadoria manual, focada nas redes mais comuns/pesadas (baseado no
+# conhecimento geral de quais domínios aparecem nas listas mais famosas,
+# tipo EasyList/StevenBlack) - não é uma cópia integral de nenhuma lista
+# de terceiros. Pra cobertura mais completa, é só substituir/complementar
+# este arquivo por um hosts-file real (ex: o da StevenBlack ou o do
+# AdAway), no mesmo formato de um domínio por linha.
+
+# --- Google Ads / Analytics ---
+doubleclick.net
+googlesyndication.com
+googleadservices.com
+google-analytics.com
+googletagmanager.com
+googletagservices.com
+adservice.google.com
+pagead2.googlesyndication.com
+adsense.google.com
+admob.com
+crashlytics.com
+
+# --- Meta / Facebook ---
+connect.facebook.net
+an.facebook.com
+atdmt.com
+
+# --- Amazon ---
+amazon-adsystem.com
+assoc-amazon.com
+
+# --- Grandes exchanges/redes de anúncio ---
+adnxs.com
+appnexus.com
+adsrvr.org
+bidswitch.net
+casalemedia.com
+contextweb.com
+criteo.com
+criteo.net
+indexexchange.com
+media.net
+mgid.com
+moatads.com
+openx.net
+outbrain.com
+pubmatic.com
+rubiconproject.com
+magnite.com
+smartadserver.com
+sovrn.com
+sharethrough.com
+taboola.com
+teads.tv
+triplelift.com
+yieldmo.com
+adform.net
+adroll.com
+bidr.io
+rlcdn.com
+demdex.net
+tapad.com
+
+# --- Analytics/tracking de terceiros ---
+scorecardresearch.com
+quantserve.com
+quantcast.com
+chartbeat.com
+chartbeat.net
+newrelic.com
+nr-data.net
+hotjar.com
+mixpanel.com
+segment.io
+segment.com
+mouseflow.com
+clicktale.net
+crazyegg.com
+optimizely.com
+
+# --- Redes de anúncio agressivo / pop-under (comuns em sites de streaming pirata) ---
+propellerads.com
+popads.net
+popcash.net
+exoclick.com
+juicyads.com
+trafficjunky.net
+adsterra.com
+hilltopads.net
+a-ads.com
+revcontent.com
+content.ad
+zedo.com
+adcolony.com
+vungle.com
+unityads.unity3d.com
+applovin.com
+ironsrc.com
+
+# --- Redes regionais grandes ---
+an.yandex.ru
+mc.yandex.ru

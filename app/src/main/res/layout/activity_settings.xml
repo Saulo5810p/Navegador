@@ -84,6 +84,49 @@
             android:background="#E0E0E0"
             android:layout_marginBottom="16dp" />
 
+        <!-- Adblock embutido (ver AdBlockManager.kt): bloqueio de
+             anúncios/rastreadores por domínio, direto no
+             shouldInterceptRequest do WebView - sem motor pesado. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_adblock_title"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/adblockSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="13sp"
+                    android:textColor="#616161"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <Switch
+                android:id="@+id/adblockSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginBottom="16dp" />
+
         <!-- Zoom da página: mesmo slider/valor do popup rápido aberto
              pela sidebar (MainActivity.showZoomDialog()) - os dois
              leem/escrevem ZoomPrefsManager, então ficam sempre em

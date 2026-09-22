@@ -14,9 +14,11 @@ import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.SeekBar
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
+import com.xaulinxs.funcoes.AdBlockManager
 import com.xaulinxs.funcoes.FileManagerActivity
 import com.xaulinxs.funcoes.SearchEngineManager
 import com.xaulinxs.funcoes.ThemeManager
@@ -57,7 +59,27 @@ class SettingsActivity : Activity() {
 
         setupThemeSelector()
         setupZoomSlider()
+        setupAdBlockSwitch()
         renderSearchEngines()
+    }
+
+    /**
+     * Liga/desliga AdBlockManager.isEnabled - o efeito é imediato na
+     * próxima requisição que o WebView fizer (não precisa reiniciar o
+     * app nem recarregar a página aberta, embora recarregar seja
+     * necessário pra remover anúncios que já carregaram antes de
+     * desligar/ligar).
+     */
+    private fun setupAdBlockSwitch() {
+        val switch = findViewById<Switch>(R.id.adblockSwitch)
+        val subtitle = findViewById<TextView>(R.id.adblockSubtitle)
+
+        switch.isChecked = AdBlockManager.isEnabled(this)
+        subtitle.text = getString(R.string.settings_adblock_subtitle_format, AdBlockManager.blockedCountThisSession())
+
+        switch.setOnCheckedChangeListener { _, isChecked ->
+            AdBlockManager.setEnabled(this, isChecked)
+        }
     }
 
     private fun setupThemeSelector() {

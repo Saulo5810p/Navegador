@@ -24,6 +24,8 @@ import androidx.core.content.ContextCompat
 import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
@@ -36,6 +38,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.norman.webviewup.lib.UpgradeCallback
 import com.norman.webviewup.lib.WebViewUpgrade
+import com.xaulinxs.funcoes.AdBlockManager
 import com.xaulinxs.funcoes.DesktopModeManager
 import com.xaulinxs.funcoes.FileManagerActivity
 import com.xaulinxs.funcoes.HistoryManager
@@ -469,8 +472,59 @@ class MainActivity : Activity() {
                     currentWebView.loadUrl(shortcut.url)
                 }
             }
+            item.setOnLongClickListener {
+                showEditShortcutDialog(shortcut)
+                true
+            }
             shortcutsContainer.addView(item)
         }
+    }
+
+    /**
+     * Popup de pressionar-e-segurar em cima de um atalho da Home: permite
+     * editar nome/URL (Salvar) ou excluir o atalho. Mesmo esqueleto de
+     * showAddShortcutDialog(), só que pré-preenchido com os valores atuais
+     * e com um terceiro botão neutro pra exclusão.
+     */
+    private fun showEditShortcutDialog(shortcut: ShortcutManager.Shortcut) {
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        container.setPadding(padding, padding, padding, padding)
+
+        val nameInput = EditText(this)
+        nameInput.hint = getString(R.string.shortcuts_dialog_name_hint)
+        nameInput.setText(shortcut.name)
+        container.addView(nameInput)
+
+        val urlInput = EditText(this)
+        urlInput.hint = getString(R.string.shortcuts_dialog_url_hint)
+        urlInput.inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI or android.text.InputType.TYPE_CLASS_TEXT
+        urlInput.setText(shortcut.url)
+        container.addView(urlInput)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.shortcuts_dialog_edit_title)
+            .setView(container)
+            .setPositiveButton(R.string.shortcuts_dialog_save) { _, _ ->
+                val name = nameInput.text.toString().trim()
+                var url = urlInput.text.toString().trim()
+                if (name.isEmpty() || url.isEmpty()) {
+                    Toast.makeText(this, R.string.shortcuts_dialog_invalid, Toast.LENGTH_SHORT).show()
+                } else {
+                    if (!url.contains("://")) {
+                        url = "https://$url"
+                    }
+                    ShortcutManager.updateShortcut(this, shortcut, name, url)
+                    renderShortcuts()
+                }
+            }
+            .setNeutralButton(R.string.shortcuts_dialog_delete) { _, _ ->
+                ShortcutManager.removeShortcut(this, shortcut)
+                renderShortcuts()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     /**
@@ -908,6 +962,29 @@ class MainActivity : Activity() {
         newWebView.settings.allowFileAccess = true
         newWebView.settings.allowContentAccess = true
         newWebView.webViewClient = object : WebViewClient() {
+            /**
+             * Adblock: intercepta cada sub-recurso (imagem, script,
+             * iframe de anúncio) ANTES do WebView buscar na rede, e
+             * devolve uma resposta vazia se o host bater com a lista de
+             * bloqueio (AdBlockManager). Nunca mexe em isForMainFrame ==
+             * true - a navegação da página em si nunca é bloqueada, só
+             * os recursos que ela carrega por baixo.
+             */
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                if (request != null && !request.isForMainFrame) {
+                    val url = request.url?.toString()
+                    if (url != null && AdBlockManager.shouldBlock(this@MainActivity, url)) {
+                        return WebResourceResponse(
+                            "text/plain", "utf-8", java.io.ByteArrayInputStream(ByteArray(0))
+                        )
+                    }
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 // Só atualiza o texto da barra de URL se o usuário não

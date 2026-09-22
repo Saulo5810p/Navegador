@@ -36,11 +36,8 @@ public final class DownloadHandler {
         DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
         // Sem filtro de status: a partir do Android 10 o DownloadManager só
         // devolve os downloads feitos pelo próprio app que consulta, então
-        // já vem isolado sem precisar de permissão extra. Ordenado pelo
-        // mais recente primeiro, pra downloads ativos aparecerem no topo.
+        // já vem isolado sem precisar de permissão extra.
         DownloadManager.Query query = new DownloadManager.Query();
-        // DownloadManager.Query nao tem orderBy() nem ORDER_DESCENDING (essa API nao existe no Android); a ordenacao por mais recente e feita
-        // manualmente logo abaixo, depois que a lista e montada, usando o campo timestamp.
         try (Cursor cursor = dm.query(query)) {
             if (cursor == null) return list;
             int idIdx = cursor.getColumnIndex(DownloadManager.COLUMN_ID);
@@ -68,6 +65,10 @@ public final class DownloadHandler {
                         reasonIdx >= 0 ? cursor.getInt(reasonIdx) : 0));
             }
         }
+        // Mais recente primeiro, pra downloads ativos aparecerem no topo -
+        // ordenado aqui em vez de usar DownloadManager.Query.orderBy(),
+        // que não está disponível/expõe a constante de direção em todo
+        // SDK (deu erro de compilação com ORDER_DESCENDING inexistente).
         Collections.sort(list, (a, b) -> Long.compare(b.timestamp, a.timestamp));
         return list;
     }

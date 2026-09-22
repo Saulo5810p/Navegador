@@ -2,9 +2,14 @@
     <string name="widget_search_hint">Pesquisar no XaulinXs Browser</string>
     <string name="shortcuts_add_content_description">Adicionar atalho</string>
     <string name="shortcuts_dialog_title">Novo atalho</string>
+    <string name="shortcuts_dialog_edit_title">Editar atalho</string>
     <string name="shortcuts_dialog_name_hint">Nome (ex: YouTube)</string>
     <string name="shortcuts_dialog_url_hint">URL (ex: www.youtube.com)</string>
     <string name="shortcuts_dialog_invalid">Preencha nome e URL</string>
+    <string name="shortcuts_dialog_save">Salvar</string>
+    <string name="shortcuts_dialog_delete">Excluir</string>
+    <string name="settings_adblock_title">Bloquear anúncios</string>
+    <string name="settings_adblock_subtitle_format">%d bloqueados nesta sessão</string>
     <string name="nav_back_content_description">Voltar</string>
     <string name="nav_reload_content_description">Recarregar página</string>
     <string name="sidebar_close_content_description">Recolher/expandir a barra de atalhos</string>

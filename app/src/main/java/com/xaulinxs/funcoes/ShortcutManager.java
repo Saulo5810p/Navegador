@@ -61,6 +61,25 @@ public final class ShortcutManager {
         persist(context, current);
     }
 
+    /**
+     * Edita um atalho existente no lugar, preservando a posição na lista -
+     * usado pelo popup de "pressionar e segurar" em cima de um atalho na
+     * Home. Localiza pelo par (nome, url) atual e substitui pelos novos
+     * valores; se não encontrar (lista mudou entre abrir o popup e
+     * salvar), não faz nada.
+     */
+    public static void updateShortcut(Context context, Shortcut oldShortcut, String newName, String newUrl) {
+        List<Shortcut> current = allShortcuts(context);
+        for (int i = 0; i < current.size(); i++) {
+            Shortcut s = current.get(i);
+            if (s.name.equals(oldShortcut.name) && s.url.equals(oldShortcut.url)) {
+                current.set(i, new Shortcut(newName, newUrl));
+                break;
+            }
+        }
+        persist(context, current);
+    }
+
     private static void persist(Context context, List<Shortcut> shortcuts) {
         JSONArray array = new JSONArray();
         try {
