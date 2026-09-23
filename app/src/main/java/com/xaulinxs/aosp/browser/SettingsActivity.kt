@@ -47,6 +47,10 @@ class SettingsActivity : Activity() {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
 
+        findViewById<TextView>(R.id.menuAdblockList).setOnClickListener {
+            startActivity(Intent(this, AdBlockListActivity::class.java))
+        }
+
         findViewById<TextView>(R.id.menuFileManager).setOnClickListener {
             val intent = Intent(this, FileManagerActivity::class.java)
             intent.putExtra(FileManagerActivity.EXTRA_MODE, FileManagerActivity.MODE_BROWSE)

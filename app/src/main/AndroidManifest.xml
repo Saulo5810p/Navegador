@@ -144,6 +144,11 @@
             android:exported="false" />
 
         <activity
+            android:name=".AdBlockListActivity"
+            android:label="@string/adblock_list_title"
+            android:exported="false" />
+
+        <activity
             android:name="com.xaulinxs.funcoes.FileManagerActivity"
             android:label="File Manager"
             android:exported="false" />

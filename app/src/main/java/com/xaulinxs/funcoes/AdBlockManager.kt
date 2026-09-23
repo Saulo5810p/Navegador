@@ -33,6 +33,7 @@ object AdBlockManager {
 
     private const val PREFS_NAME = "xaulinxs_browser_prefs"
     private const val KEY_ENABLED = "adblock_enabled"
+    private const val KEY_CUSTOM_DOMAINS = "adblock_custom_domains"
     private const val ASSET_PATH = "adblock/hosts_block.txt"
     private const val DECISION_CACHE_MAX = 4000
 
@@ -54,6 +55,65 @@ object AdBlockManager {
 
     /** Quantas requisições foram bloqueadas desde que o processo do app abriu (não persiste). */
     fun blockedCountThisSession(): Int = blockedCountSession.get()
+
+
+    /** Domínios adicionados manualmente pelo usuário na tela dedicada de Adblock. */
+    fun customDomains(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_CUSTOM_DOMAINS, emptySet()) ?: emptySet()
+
+    /**
+     * Adiciona um domínio customizado à lista de bloqueio, digitado
+     * manualmente pelo usuário na tela dedicada de Adblock. Aceita tanto
+     * um domínio puro ("exemplo.com") quanto uma URL colada por engano
+     * ("https://exemplo.com/pagina") - nesse caso extrai só o host.
+     * Retorna o domínio normalizado que foi salvo, ou null se a entrada
+     * for inválida (vazia, com espaço, ou sem nenhum ponto - mesma regra
+     * de "não bloqueia TLD inteiro" usada em isHostBlocked). O efeito é
+     * imediato: invalida o cache em memória, então a próxima requisição
+     * já enxerga o domínio novo, sem precisar reiniciar o app.
+     */
+    fun addCustomDomain(context: Context, rawInput: String): String? {
+        val domain = normalizeDomainInput(rawInput) ?: return null
+        val current = HashSet(customDomains(context))
+        current.add(domain)
+        prefs(context).edit().putStringSet(KEY_CUSTOM_DOMAINS, current).apply()
+        invalidateCache()
+        return domain
+    }
+
+    /** Remove um domínio customizado (não afeta os domínios vindos do hosts_block.txt). */
+    fun removeCustomDomain(context: Context, domain: String) {
+        val current = HashSet(customDomains(context))
+        current.remove(domain)
+        prefs(context).edit().putStringSet(KEY_CUSTOM_DOMAINS, current).apply()
+        invalidateCache()
+    }
+
+    /** Lista completa (hosts_block.txt + customizados) ordenada, pra exibir na tela dedicada de Adblock. */
+    fun allBlockedDomains(context: Context): List<String> = loadDomains(context).sorted()
+
+    private fun invalidateCache() {
+        synchronized(this) {
+            blockedDomains = null
+        }
+        decisionCache.clear()
+    }
+
+    private fun normalizeDomainInput(rawInput: String): String? {
+        var value = rawInput.trim().lowercase()
+        if (value.isEmpty() || value.any { it.isWhitespace() }) return null
+        if (value.contains("://")) {
+            value = try {
+                Uri.parse(value).host ?: return null
+            } catch (e: Exception) {
+                return null
+            }
+        } else if (value.contains("/")) {
+            value = value.substringBefore("/")
+        }
+        if (value.isEmpty() || !value.contains(".")) return null
+        return value
+    }
 
     /**
      * true se a requisição pra essa URL deve ser bloqueada (resposta
@@ -118,6 +178,7 @@ object AdBlockManager {
                 // Sem lista carregada: o adblock vira no-op (nunca bloqueia
                 // nada) em vez de travar a navegação - falha segura.
             }
+            set.addAll(customDomains(context))
             blockedDomains = set
             return set
         }

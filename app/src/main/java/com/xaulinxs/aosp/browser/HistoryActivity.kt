@@ -2,11 +2,14 @@ package com.xaulinxs.aosp.browser
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ListView
 import android.widget.TextView
+import android.widget.Toast
 import com.xaulinxs.funcoes.HistoryAdapter
 import com.xaulinxs.funcoes.HistoryEntry
 import com.xaulinxs.funcoes.HistoryManager
@@ -43,6 +46,12 @@ class HistoryActivity : Activity() {
             finish()
         }
 
+        listView.setOnItemLongClickListener { parent, _, position, _ ->
+            val entry = parent.getItemAtPosition(position) as HistoryEntry
+            copyLinkToClipboard(entry.url)
+            true
+        }
+
         findViewById<TextView>(R.id.btnClearHistory).setOnClickListener {
             confirmClearHistory()
         }
@@ -57,6 +66,17 @@ class HistoryActivity : Activity() {
         val entries = HistoryManager.allEntries(this)
         listView.adapter = HistoryAdapter(this, entries)
         emptyLabel.visibility = if (entries.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * Copia a URL do item segurado pra área de transferência do sistema,
+     * via ClipboardManager padrão do Android (funciona em qualquer app
+     * de destino onde o usuário for colar depois).
+     */
+    private fun copyLinkToClipboard(url: String) {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.history_title), url))
+        Toast.makeText(this, R.string.history_link_copied, Toast.LENGTH_SHORT).show()
     }
 
     private fun confirmClearHistory() {

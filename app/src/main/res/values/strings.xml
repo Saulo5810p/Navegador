@@ -9,6 +9,16 @@
     <string name="shortcuts_dialog_save">Salvar</string>
     <string name="shortcuts_dialog_delete">Excluir</string>
     <string name="settings_adblock_title">Bloquear anúncios</string>
+    <string name="settings_adblock_list_menu">Ver lista de bloqueios</string>
+    <string name="adblock_list_title">Domínios bloqueados</string>
+    <string name="adblock_list_count_format">%1$d de %2$d domínios</string>
+    <string name="adblock_list_filter_hint">Filtrar domínios</string>
+    <string name="adblock_list_add_hint">Adicionar domínio (ex: exemplo.com)</string>
+    <string name="adblock_list_add_button">Adicionar</string>
+    <string name="adblock_list_added_format">%1$s bloqueado</string>
+    <string name="adblock_list_invalid_domain">Digite um domínio válido</string>
+    <string name="adblock_list_builtin_domain">Esse domínio é da lista embutida e não pode ser removido aqui</string>
+    <string name="adblock_list_remove_confirm_format">Remover %1$s da lista de bloqueio?</string>
     <string name="settings_adblock_subtitle_format">%d bloqueados nesta sessão</string>
     <string name="nav_back_content_description">Voltar</string>
     <string name="nav_reload_content_description">Recarregar página</string>
@@ -33,6 +43,7 @@
     <string name="history_title">Histórico</string>
     <string name="history_clear">Limpar histórico</string>
     <string name="history_clear_confirm">Apagar todo o histórico de navegação?</string>
+    <string name="history_link_copied">Link copiado</string>
     <string name="downloads_delete_confirm_title">Excluir arquivo?</string>
     <string name="downloads_delete_confirm_message">O arquivo \"%1$s\" será removido da lista e apagado do dispositivo.</string>
     <string name="downloads_open_content_description">Abrir arquivo</string>

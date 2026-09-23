@@ -121,6 +121,20 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <!-- Item de menu: tela dedicada com a lista completa de domínios
+             bloqueados + campo pra adicionar mais manualmente. -->
+        <TextView
+            android:id="@+id/menuAdblockList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_adblock_list_menu"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:layout_marginBottom="24dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
