@@ -93,4 +93,12 @@
     <string name="zoom_dialog_title">Zoom da página</string>
     <string name="zoom_percent_format">%d%%</string>
     <string name="zoom_reset">Redefinir (100%)</string>
+
+    <!-- XAULINXS_MEDIA_LONGPRESS_MENU -->
+    <string name="media_menu_download_image">Baixar imagem</string>
+    <string name="media_menu_download_video">Baixar vídeo</string>
+    <string name="media_menu_copy_link">Copiar link</string>
+    <string name="media_menu_new_webview">Abrir em novo WebView</string>
+    <string name="media_menu_download_failed">Não foi possível baixar direto deste site</string>
+    <string name="media_menu_link_copied">Link copiado</string>
 </resources>

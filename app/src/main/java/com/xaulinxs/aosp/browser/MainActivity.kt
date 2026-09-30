@@ -51,6 +51,11 @@ import com.xaulinxs.aosp.browser.widget.SidebarSizeManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeMode
 import com.xaulinxs.aosp.browser.widget.VoiceSearchDialog
 import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.webkit.JavascriptInterface
+import android.os.Handler
+import android.os.Looper
 import java.io.File
 
 /**
@@ -114,6 +119,18 @@ class MainActivity : Activity() {
     // aqui porque o WebViewUpgrade é assíncrono e a WebView pode ainda
     // não existir quando o intent chega em onCreate()/onNewIntent().
     private var pendingExternalUrl: String? = null
+
+    // XAULINXS_MEDIA_LONGPRESS_MENU: última posição tocada na WebView (ACTION_DOWN), em
+    // pixels de tela - convertida pra CSS px (dividindo por
+    // webView.scale) na hora de montar o JS de detecção. Usada pelo
+    // long-press pra saber ONDE checar se existe imagem/vídeo.
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+
+    // Handler pra rodar no thread principal o callback do
+    // JavascriptInterface (evaluateJavascript/addJavascriptInterface
+    // chamam de uma thread de WebCore, nunca da UI thread).
+    private val mediaMenuHandler = Handler(Looper.getMainLooper())
 
     // true quando o app foi aberto pelo widget de busca (4x1, estilo
     // Chromium) - sinaliza que, assim que a Home estiver visível, o
@@ -961,6 +978,37 @@ class MainActivity : Activity() {
         // que o WebView de sistema teria.
         newWebView.settings.allowFileAccess = true
         newWebView.settings.allowContentAccess = true
+
+        // XAULINXS_MEDIA_LONGPRESS_MENU: guarda a posição do toque pra usar no long-press,
+        // e nunca consome o evento aqui (return false) - scroll, zoom
+        // por pinça e clique normal continuam funcionando exatamente
+        // como antes.
+        newWebView.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                lastTouchX = event.x
+                lastTouchY = event.y
+            }
+            false
+        }
+
+        // XAULINXS_MEDIA_LONGPRESS_MENU: ponte JS -> Kotlin usada só pra descobrir se o
+        // ponto tocado tem uma imagem ou vídeo por baixo (ver
+        // MEDIA_DETECTION_JS). Não expõe nada além disso.
+        newWebView.addJavascriptInterface(MediaLongPressBridge(), "XaulinXsMediaBridge")
+
+        newWebView.setOnLongClickListener {
+            val current = webView ?: return@setOnLongClickListener false
+            val scale = current.scale.takeIf { it > 0f } ?: 1f
+            val cssX = (lastTouchX / scale).toInt()
+            val cssY = (lastTouchY / scale).toInt()
+            current.evaluateJavascript(mediaDetectionJs(cssX, cssY), null)
+            // Consome o long-press: em vez do menu nativo de seleção de
+            // texto do WebView, este app decide mostrar (ou não) o
+            // popup compacto assim que o JS acima responder de forma
+            // assíncrona via MediaLongPressBridge.onMediaFound().
+            true
+        }
+
         newWebView.webViewClient = object : WebViewClient() {
             /**
              * Adblock: intercepta cada sub-recurso (imagem, script,
@@ -1060,6 +1108,148 @@ class MainActivity : Activity() {
      * muda, então esta função só existe pra ser chamada logo após o
      * toggle, sem esperar a Activity inteira ser recriada.
      */
+
+    // XAULINXS_MEDIA_LONGPRESS_MENU
+    /**
+     * Ponte chamada pelo JavaScript injetado no long-press
+     * (mediaDetectionJs). Roda numa thread interna do WebView, então
+     * qualquer coisa que toque em Views precisa passar pelo
+     * mediaMenuHandler antes.
+     */
+    private inner class MediaLongPressBridge {
+        @JavascriptInterface
+        fun onMediaFound(type: String, src: String) {
+            if (src.isBlank()) return
+            mediaMenuHandler.post { showMediaContextMenu(type, src) }
+        }
+    }
+
+    /**
+     * JS injetado no ponto tocado (em CSS px): sobe a árvore de
+     * ancestrais a partir de document.elementFromPoint() procurando,
+     * nesta ordem, uma <img>, um <video>/<source> (usando currentSrc
+     * quando disponível - é o que reflete a fonte realmente em
+     * reprodução) ou um elemento com background-image no CSS
+     * computado (comum em galerias que não usam <img> de verdade).
+     * Resolve URLs relativas com "new URL(..., location.href)" antes
+     * de devolver, pra sempre chegar no Kotlin como link absoluto.
+     */
+    private fun mediaDetectionJs(x: Int, y: Int): String = """
+        (function() {
+            try {
+                var el = document.elementFromPoint($x, $y);
+                while (el) {
+                    var tag = el.tagName ? el.tagName.toUpperCase() : '';
+                    if (tag === 'IMG' && el.src) {
+                        XaulinXsMediaBridge.onMediaFound('image', new URL(el.src, location.href).href);
+                        return;
+                    }
+                    if (tag === 'VIDEO') {
+                        var vsrc = el.currentSrc || el.src || '';
+                        if (!vsrc) {
+                            var sourceEl = el.querySelector('source');
+                            if (sourceEl && sourceEl.src) vsrc = sourceEl.src;
+                        }
+                        if (vsrc) {
+                            XaulinXsMediaBridge.onMediaFound('video', new URL(vsrc, location.href).href);
+                            return;
+                        }
+                    }
+                    if (tag === 'SOURCE' && el.parentElement && el.parentElement.tagName === 'VIDEO' && el.src) {
+                        XaulinXsMediaBridge.onMediaFound('video', new URL(el.src, location.href).href);
+                        return;
+                    }
+                    var bg = window.getComputedStyle(el).backgroundImage;
+                    if (bg && bg !== 'none') {
+                        var match = bg.match(/url\(["']?(.*?)["']?\)/);
+                        if (match && match[1]) {
+                            XaulinXsMediaBridge.onMediaFound('image', new URL(match[1], location.href).href);
+                            return;
+                        }
+                    }
+                    el = el.parentElement;
+                }
+            } catch (e) {}
+        })();
+    """.trimIndent()
+
+    /**
+     * Popup compacto (AlertDialog.setItems, mesmo padrão sem Material
+     * já usado no resto do app) mostrado quando o long-press acha uma
+     * imagem ou vídeo sob o dedo. type é "image" ou "video" - só muda
+     * o rótulo do primeiro item (Baixar imagem / Baixar vídeo).
+     */
+    private fun showMediaContextMenu(type: String, url: String) {
+        val downloadLabel = if (type == "video") {
+            getString(R.string.media_menu_download_video)
+        } else {
+            getString(R.string.media_menu_download_image)
+        }
+        val options = arrayOf(
+            downloadLabel,
+            getString(R.string.media_menu_copy_link),
+            getString(R.string.media_menu_new_webview)
+        )
+        AlertDialog.Builder(this)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> downloadMediaDirect(url)
+                    1 -> copyMediaLinkToClipboard(url)
+                    2 -> recreateWebViewWithUrl(url)
+                }
+            }
+            .show()
+    }
+
+    /**
+     * Dispara o download da mídia direto pela URL captada (sem passar
+     * pelo WebView.setDownloadListener, já que aqui não existe uma
+     * navegação/Content-Disposition do servidor disparando o
+     * download - é um GET direto no link da imagem/vídeo). Só funciona
+     * quando a URL é acessível publicamente sem autenticação extra
+     * além dos cookies já salvos (CookieManager, usado dentro de
+     * BrowserDownloadManager) - daí a ressalva "se o site permitir".
+     */
+    private fun downloadMediaDirect(url: String) {
+        try {
+            BrowserDownloadManager.startDownload(
+                this,
+                url,
+                webView?.settings?.userAgentString,
+                null,
+                null
+            )
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.media_menu_download_failed, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** Mesmo padrão de HistoryActivity.copyLinkToClipboard(). */
+    private fun copyMediaLinkToClipboard(url: String) {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.app_name), url))
+        Toast.makeText(this, R.string.media_menu_link_copied, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * "Abrir em novo WebView": não é uma nova aba - é literalmente
+     * destruir a instância atual de WebView (removendo do
+     * webViewContainer e chamando destroy(), pra liberar o processo
+     * renderer/sandbox associado) e recriar do zero via
+     * initWebView(), que já sabe carregar pendingExternalUrl assim
+     * que a nova instância termina de ser montada.
+     */
+    private fun recreateWebViewWithUrl(url: String) {
+        webView?.let { old ->
+            webViewContainer.removeView(old)
+            old.destroy()
+        }
+        webView = null
+        pendingExternalUrl = url
+        showWebView()
+        initWebView()
+    }
+
     private fun updateDesktopModeButtonLabel() {
         renderSidebarShortcuts()
     }
