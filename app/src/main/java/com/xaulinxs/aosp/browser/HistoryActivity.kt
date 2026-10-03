@@ -38,10 +38,15 @@ class HistoryActivity : Activity() {
         emptyLabel = findViewById(R.id.historyEmptyLabel)
 
         listView.setOnItemClickListener { parent, _, position, _ ->
-            val entry = parent.getItemAtPosition(position) as HistoryEntry
+            // XAULINXS_FIX_HISTORY_CLICK
+            val entry = parent.getItemAtPosition(position) as? HistoryEntry
+            val url = entry?.url
+            if (url.isNullOrBlank()) {
+                return@setOnItemClickListener
+            }
             val intent = Intent(this, MainActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            intent.putExtra(EXTRA_OPEN_URL, entry.url)
+            intent.putExtra(EXTRA_OPEN_URL, url)
             startActivity(intent)
             finish()
         }

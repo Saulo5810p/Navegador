@@ -19,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.xaulinxs.aosp.browser.widget.ZoomPrefsManager
 import com.xaulinxs.funcoes.AdBlockManager
+import com.xaulinxs.funcoes.CookiePrefsManager
 import com.xaulinxs.funcoes.FileManagerActivity
 import com.xaulinxs.funcoes.SearchEngineManager
 import com.xaulinxs.funcoes.ThemeManager
@@ -64,6 +65,7 @@ class SettingsActivity : Activity() {
         setupThemeSelector()
         setupZoomSlider()
         setupAdBlockSwitch()
+        setupCookieSwitches() // XAULINXS_FIX_V3_LOGIN
         renderSearchEngines()
     }
 
@@ -83,6 +85,31 @@ class SettingsActivity : Activity() {
 
         switch.setOnCheckedChangeListener { _, isChecked ->
             AdBlockManager.setEnabled(this, isChecked)
+        }
+    }
+
+    /**
+     * XAULINXS_FIX_V3_LOGIN
+     * "Aceitar cookies" liga/desliga tudo; "Cookies de terceiros" só faz
+     * sentido com o primeiro ligado (fica desabilitado quando não).
+     * O efeito é imediato: o global vale na hora e o de terceiros é
+     * reaplicado na WebView quando o usuário volta ao navegador
+     * (MainActivity.onResume). Recarregue a página para o site enxergar.
+     */
+    private fun setupCookieSwitches() {
+        val cookies = findViewById<Switch>(R.id.cookiesSwitch)
+        val third = findViewById<Switch>(R.id.thirdPartyCookiesSwitch)
+
+        cookies.isChecked = CookiePrefsManager.isCookiesEnabled(this)
+        third.isChecked = CookiePrefsManager.isThirdPartyEnabled(this)
+        third.isEnabled = cookies.isChecked
+
+        cookies.setOnCheckedChangeListener { _, isChecked ->
+            CookiePrefsManager.setCookiesEnabled(this, isChecked)
+            third.isEnabled = isChecked
+        }
+        third.setOnCheckedChangeListener { _, isChecked ->
+            CookiePrefsManager.setThirdPartyEnabled(this, isChecked)
         }
     }
 

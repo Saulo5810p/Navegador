@@ -37,6 +37,19 @@ object AdBlockManager {
     private const val ASSET_PATH = "adblock/hosts_block.txt"
     private const val DECISION_CACHE_MAX = 4000
 
+    // XAULINXS_FIX_V3_LOGIN: hosts de login/desafio que NUNCA podem ser bloqueados
+    // (casam o host exato e qualquer subdominio). Bloquear qualquer um
+    // deles deixa /gsi/transform em branco ou o Turnstile em loop.
+    private val ALLOWLIST_HOSTS = listOf(
+        "accounts.google.com",
+        "accounts.youtube.com",
+        "apis.google.com",
+        "ssl.gstatic.com",
+        "www.gstatic.com",
+        "challenges.cloudflare.com",
+        "recaptcha.net"
+    )
+
     @Volatile
     private var blockedDomains: HashSet<String>? = null
 
@@ -130,6 +143,8 @@ object AdBlockManager {
             null
         } ?: return false
 
+        if (isAllowListed(host, url)) return false
+
         val blocked = decisionCache.getOrPut(host) { isHostBlocked(context, host) }
         if (decisionCache.size > DECISION_CACHE_MAX) {
             // Limite simples pra nunca crescer sem parar em sessões muito
@@ -159,6 +174,22 @@ object AdBlockManager {
             candidate = candidate.substring(dotIndex + 1)
             if (!candidate.contains('.')) return false // não bloqueia TLD inteiro (ex: ".com")
         }
+    }
+
+    /** XAULINXS_FIX_V3_LOGIN: true se o recurso pertence a um fluxo de login/desafio. */
+    private fun isAllowListed(host: String, url: String): Boolean {
+        for (allowed in ALLOWLIST_HOSTS) {
+            if (host == allowed || host.endsWith(".$allowed")) return true
+        }
+        if (host == "www.google.com" || host == "google.com") {
+            val path = try {
+                Uri.parse(url).path ?: ""
+            } catch (e: Exception) {
+                ""
+            }
+            if (path.startsWith("/recaptcha/") || path.startsWith("/gsi/")) return true
+        }
+        return false
     }
 
     private fun loadDomains(context: Context): HashSet<String> {

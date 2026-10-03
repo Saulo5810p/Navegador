@@ -36,6 +36,20 @@ object BrowserDownloadManager {
         contentDisposition: String?,
         mimeType: String?
     ) {
+        // XAULINXS_FIX_V2: DownloadManager.Request so aceita http/https - qualquer
+        // outro esquema (blob:, data:, ftp:) lancava IllegalArgumentException
+        // e derrubava o app. Agora so avisa; blob:/data: sao tratados na
+        // MainActivity via BlobDownloadBridge.
+        val scheme = Uri.parse(url).scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") {
+            Toast.makeText(
+                context,
+                context.getString(R.string.download_unsupported_scheme),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         val resolvedMimeType = resolveMimeType(url, contentDisposition, mimeType)
         val fileName = URLUtil.guessFileName(url, contentDisposition, resolvedMimeType)
 

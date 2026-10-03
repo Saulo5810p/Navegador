@@ -39,12 +39,14 @@ import android.widget.Toast
 import com.norman.webviewup.lib.UpgradeCallback
 import com.norman.webviewup.lib.WebViewUpgrade
 import com.xaulinxs.funcoes.AdBlockManager
+import com.xaulinxs.funcoes.CookiePrefsManager
 import com.xaulinxs.funcoes.DesktopModeManager
 import com.xaulinxs.funcoes.FileManagerActivity
 import com.xaulinxs.funcoes.HistoryManager
 import com.xaulinxs.funcoes.SearchEngineManager
 import com.xaulinxs.funcoes.ShortcutManager
 import com.xaulinxs.funcoes.download.BrowserDownloadManager
+import com.xaulinxs.funcoes.download.BlobDownloadBridge
 import com.xaulinxs.aosp.browser.widget.SidebarFunction
 import com.xaulinxs.aosp.browser.widget.SidebarPrefsManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeManager
@@ -56,6 +58,7 @@ import android.content.ClipboardManager
 import android.webkit.JavascriptInterface
 import android.os.Handler
 import android.os.Looper
+import android.os.Message
 import java.io.File
 
 /**
@@ -79,6 +82,15 @@ class MainActivity : Activity() {
     // já decidiu qual provider usar - criar uma WebView antes disso
     // vincula o processo ao WebView do sistema e a troca nunca acontece.
     private var webView: WebView? = null
+
+    // XAULINXS_FIX_V3_LOGIN: popup real de window.open() (login Google/GSI etc.)
+    private var popupDialog: android.app.Dialog? = null
+    private var popupWebView: WebView? = null
+
+    // XAULINXS_FIX_V2: tela cheia de video (WebChromeClient.onShowCustomView)
+    private var customView: View? = null
+    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var previousUiVisibility: Int = 0
 
     private lateinit var webViewContainer: FrameLayout
     private lateinit var homeLayout: LinearLayout
@@ -131,6 +143,7 @@ class MainActivity : Activity() {
     // JavascriptInterface (evaluateJavascript/addJavascriptInterface
     // chamam de uma thread de WebCore, nunca da UI thread).
     private val mediaMenuHandler = Handler(Looper.getMainLooper())
+    private val blobBridge by lazy { BlobDownloadBridge(this) }
 
     // true quando o app foi aberto pelo widget de busca (4x1, estilo
     // Chromium) - sinaliza que, assim que a Home estiver visível, o
@@ -978,6 +991,19 @@ class MainActivity : Activity() {
         // que o WebView de sistema teria.
         newWebView.settings.allowFileAccess = true
         newWebView.settings.allowContentAccess = true
+        // XAULINXS_FIX_V3_LOGIN: GSI abre o login via window.open() - sem
+        // multiplas janelas ele renderiza no frame errado (tela branca em
+        // /gsi/transform). databaseEnabled/dom storage ajudam o Turnstile.
+        newWebView.settings.databaseEnabled = true
+        newWebView.settings.setSupportMultipleWindows(true)
+        newWebView.settings.javaScriptCanOpenWindowsAutomatically = true
+        CookiePrefsManager.apply(this, newWebView)
+        // XAULINXS_FIX_V2: videos/segmentos http dentro de pagina https eram
+        // bloqueados (padrao NEVER_ALLOW); cookies de terceiros sao
+        // necessarios para varios players/CDNs; autoplay sem gesto
+        // evita players que chamam play() por script e falham.
+        newWebView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        newWebView.settings.mediaPlaybackRequiresUserGesture = false
 
         // XAULINXS_MEDIA_LONGPRESS_MENU: guarda a posição do toque pra usar no long-press,
         // e nunca consome o evento aqui (return false) - scroll, zoom
@@ -995,6 +1021,7 @@ class MainActivity : Activity() {
         // ponto tocado tem uma imagem ou vídeo por baixo (ver
         // MEDIA_DETECTION_JS). Não expõe nada além disso.
         newWebView.addJavascriptInterface(MediaLongPressBridge(), "XaulinXsMediaBridge")
+        newWebView.addJavascriptInterface(blobBridge, "XaulinXsBlobBridge")
 
         newWebView.setOnLongClickListener {
             val current = webView ?: return@setOnLongClickListener false
@@ -1002,11 +1029,12 @@ class MainActivity : Activity() {
             val cssX = (lastTouchX / scale).toInt()
             val cssY = (lastTouchY / scale).toInt()
             current.evaluateJavascript(mediaDetectionJs(cssX, cssY), null)
-            // Consome o long-press: em vez do menu nativo de seleção de
-            // texto do WebView, este app decide mostrar (ou não) o
-            // popup compacto assim que o JS acima responder de forma
-            // assíncrona via MediaLongPressBridge.onMediaFound().
-            true
+            // XAULINXS_FIX_V2: NAO consome mais o long-press (return false). Antes
+            // ele era sempre consumido e isso matava a selecao manual de
+            // texto do WebView em qualquer pagina. Agora o JS acima roda
+            // em paralelo e so abre o popup de midia se houver imagem/video
+            // sob o dedo; sobre texto, a selecao nativa funciona normal.
+            false
         }
 
         newWebView.webViewClient = object : WebViewClient() {
@@ -1033,8 +1061,14 @@ class MainActivity : Activity() {
                 return super.shouldInterceptRequest(view, request)
             }
 
+            override fun onPageCommitVisible(view: WebView?, url: String?) {
+                super.onPageCommitVisible(view, url)
+                enableTextSelection(view)
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                enableTextSelection(view)
                 // Só atualiza o texto da barra de URL se o usuário não
                 // estiver com o foco nela (editando) - evita sobrescrever
                 // o que ele está digitando caso a página termine de
@@ -1060,6 +1094,72 @@ class MainActivity : Activity() {
         // (DocumentsUI), abrimos nosso FileManagerActivity próprio em modo
         // "pick" - ao tocar num arquivo, ele já volta selecionado pro site.
         newWebView.webChromeClient = object : WebChromeClient() {
+            // XAULINXS_FIX_V2 ---- video em tela cheia / poster / DRM ----
+            override fun onShowCustomView(view: View?, callback: WebChromeClient.CustomViewCallback?) {
+                if (view == null || customView != null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                customView = view
+                customViewCallback = callback
+                val decor = window.decorView as FrameLayout
+                previousUiVisibility = decor.systemUiVisibility
+                decor.addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
+                )
+                decor.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+            }
+
+            override fun onHideCustomView() {
+                exitCustomView()
+            }
+
+            // Sem poster padrao, alguns WebViews lancam NPE ao preparar
+            // <video> sem atributo poster.
+            override fun getDefaultVideoPoster(): android.graphics.Bitmap? {
+                return android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+            }
+
+            // Conteudo protegido (EME/DRM): so libera o ID de midia
+            // protegida; camera/microfone continuam negados.
+            override fun onPermissionRequest(request: android.webkit.PermissionRequest?) {
+                if (request == null) return
+                val allowed = request.resources
+                    .filter { it == android.webkit.PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID }
+                    .toTypedArray()
+                if (allowed.isNotEmpty()) request.grant(allowed) else request.deny()
+            }
+
+            // XAULINXS_FIX_V3_LOGIN ---- janelas (window.open / target=_blank) ----
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                if (view == null || resultMsg == null) return false
+                val hit = view.hitTestResult.type
+                val isLink = hit == WebView.HitTestResult.SRC_ANCHOR_TYPE ||
+                    hit == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
+                // Mini bloqueador de pop-up: janela sem gesto do usuario e que
+                // nao veio de um link e recusada.
+                if (!isUserGesture && !isLink) return false
+                return if (isLink) openLinkInCurrentView(resultMsg) else openPopupWindow(resultMsg)
+            }
+
+            override fun onCloseWindow(window: WebView?) {
+                if (window != null && window === popupWebView) closePopupWindow()
+            }
+
             override fun onShowFileChooser(
                 webView: WebView?,
                 callback: ValueCallback<Array<Uri>>?,
@@ -1079,7 +1179,7 @@ class MainActivity : Activity() {
         // DownloadForegroundService com notificação de progresso real
         // (substituindo a notificação básica automática do DownloadManager).
         newWebView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
-            BrowserDownloadManager.startDownload(this, url, userAgent, contentDisposition, mimeType)
+            handleDownloadRequest(url, userAgent, contentDisposition, mimeType)
         }
 
         // Aplica o modo Desktop/Mobile salvo (padrão: mobile) antes de
@@ -1109,6 +1209,86 @@ class MainActivity : Activity() {
      * toggle, sem esperar a Activity inteira ser recriada.
      */
 
+    // XAULINXS_FIX_V2
+    /**
+     * Ponto único de entrada para downloads da WebView:
+     *  - http/https -> DownloadManager (fluxo antigo, com notificação);
+     *  - blob:      -> lido dentro da página via JS e salvo por BlobDownloadBridge;
+     *  - data:      -> decodificado direto e salvo em Downloads.
+     * Qualquer falha vira Toast (nunca mais derruba o app).
+     */
+    private fun handleDownloadRequest(
+        url: String,
+        userAgent: String?,
+        contentDisposition: String?,
+        mimeType: String?
+    ) {
+        try {
+            val lower = url.lowercase()
+            when {
+                lower.startsWith("blob:") -> {
+                    val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
+                    webView?.evaluateJavascript(blobBridge.buildFetchScript(url, fileName), null)
+                }
+                lower.startsWith("data:") -> {
+                    val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
+                    blobBridge.saveDataUri(url, fileName)
+                }
+                else -> BrowserDownloadManager.startDownload(
+                    this, url, userAgent, contentDisposition, mimeType
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("BrowserDownload", "Falha ao iniciar download: $url", e)
+            Toast.makeText(this, R.string.blob_download_failed, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Força a seleção manual de texto em qualquer página: sobrescreve
+     * user-select/touch-callout via CSS (!important) e bloqueia, em fase
+     * de captura, os handlers de "selectstart"/"copy" que sites usam para
+     * impedir a seleção. Reaplicada em onPageCommitVisible/onPageFinished.
+     */
+    private fun enableTextSelection(view: WebView?) {
+        view?.evaluateJavascript(
+            """
+            (function() {
+                try {
+                    var css = '*,*::before,*::after{-webkit-user-select:text !important;user-select:text !important;-webkit-touch-callout:default !important;}';
+                    var st = document.getElementById('xaulinxs-select-style');
+                    if (!st) {
+                        st = document.createElement('style');
+                        st.id = 'xaulinxs-select-style';
+                        (document.head || document.documentElement).appendChild(st);
+                    }
+                    st.textContent = css;
+                    if (!window.__xsSelectUnlock) {
+                        window.__xsSelectUnlock = true;
+                        ['selectstart', 'copy'].forEach(function(t) {
+                            document.addEventListener(t, function(e) { e.stopImmediatePropagation(); }, true);
+                        });
+                        document.onselectstart = null;
+                        if (document.body) document.body.onselectstart = null;
+                    }
+                } catch (e) {}
+            })();
+            """.trimIndent(),
+            null
+        )
+    }
+
+    /** Sai do vídeo em tela cheia e restaura as barras do sistema. */
+    private fun exitCustomView() {
+        val v = customView ?: return
+        val decor = window.decorView as FrameLayout
+        decor.removeView(v)
+        customView = null
+        decor.systemUiVisibility = previousUiVisibility
+        customViewCallback?.onCustomViewHidden()
+        customViewCallback = null
+    }
+
     // XAULINXS_MEDIA_LONGPRESS_MENU
     /**
      * Ponte chamada pelo JavaScript injetado no long-press
@@ -1120,7 +1300,10 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun onMediaFound(type: String, src: String) {
             if (src.isBlank()) return
-            mediaMenuHandler.post { showMediaContextMenu(type, src) }
+            mediaMenuHandler.post {
+                webView?.evaluateJavascript("window.getSelection().removeAllRanges();", null)
+                showMediaContextMenu(type, src)
+            }
         }
     }
 
@@ -1160,7 +1343,7 @@ class MainActivity : Activity() {
                         return;
                     }
                     var bg = window.getComputedStyle(el).backgroundImage;
-                    if (bg && bg !== 'none') {
+                    if (bg && bg !== 'none' && !(el.innerText || '').trim()) {
                         var match = bg.match(/url\(["']?(.*?)["']?\)/);
                         if (match && match[1]) {
                             XaulinXsMediaBridge.onMediaFound('image', new URL(match[1], location.href).href);
@@ -1212,13 +1395,7 @@ class MainActivity : Activity() {
      */
     private fun downloadMediaDirect(url: String) {
         try {
-            BrowserDownloadManager.startDownload(
-                this,
-                url,
-                webView?.settings?.userAgentString,
-                null,
-                null
-            )
+            handleDownloadRequest(url, webView?.settings?.userAgentString, null, null)
         } catch (e: Exception) {
             Toast.makeText(this, R.string.media_menu_download_failed, Toast.LENGTH_SHORT).show()
         }
@@ -1442,7 +1619,158 @@ class MainActivity : Activity() {
             .show()
     }
 
+    // XAULINXS_FIX_V3_LOGIN
+    /**
+     * Link com target="_blank": em vez de criar uma janela, descobre a URL
+     * pela WebView temporária (transport) e carrega na WebView atual.
+     */
+    private fun openLinkInCurrentView(resultMsg: Message): Boolean {
+        val temp = WebView(this)
+        var handled = false
+        fun redirect(url: String?) {
+            if (handled || url.isNullOrBlank() || url == "about:blank") return
+            handled = true
+            webView?.loadUrl(url)
+            mediaMenuHandler.post { temp.destroy() }
+        }
+        temp.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                redirect(request?.url?.toString())
+                return true
+            }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                redirect(url)
+            }
+        }
+        val transport = resultMsg.obj as WebView.WebViewTransport
+        transport.webView = temp
+        resultMsg.sendToTarget()
+        // Se nada navegou (janela vazia), não deixa a WebView temporária vazando.
+        mediaMenuHandler.postDelayed({ if (!handled) temp.destroy() }, 10000)
+        return true
+    }
+
+    /**
+     * window.open() de verdade (ex.: login do Google/GSI): abre um Dialog
+     * com uma WebView própria e devolve ela como destino da janela. Assim
+     * window.opener e postMessage continuam funcionando, que é o que o
+     * GSI usa para devolver o token para a página original. A janela fecha
+     * sozinha quando o site chama window.close() (onCloseWindow).
+     */
+    private fun openPopupWindow(resultMsg: Message): Boolean {
+        closePopupWindow()
+
+        val popup = WebView(this)
+        val ps = popup.settings
+        ps.javaScriptEnabled = true
+        ps.domStorageEnabled = true
+        ps.databaseEnabled = true
+        ps.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        ps.setSupportMultipleWindows(false)
+        ps.javaScriptCanOpenWindowsAutomatically = true
+        // Mesmo User-Agent da WebView principal durante toda a sessão.
+        webView?.settings?.userAgentString?.let { ps.userAgentString = it }
+        CookiePrefsManager.apply(this, popup)
+        popup.webViewClient = object : WebViewClient() {}
+
+        val density = resources.displayMetrics.density
+        val pad = (12 * density).toInt()
+
+        val title = TextView(this)
+        title.textSize = 14f
+        title.maxLines = 1
+        title.ellipsize = android.text.TextUtils.TruncateAt.END
+        title.setPadding(pad, pad, pad, pad)
+
+        val close = TextView(this)
+        close.text = "\u2715"
+        close.textSize = 20f
+        close.setPadding(pad * 2, pad, pad * 2, pad)
+        close.setOnClickListener { closePopupWindow() }
+
+        popup.webChromeClient = object : WebChromeClient() {
+            override fun onCloseWindow(window: WebView?) {
+                closePopupWindow()
+            }
+
+            override fun onReceivedTitle(view: WebView?, t: String?) {
+                title.text = t ?: ""
+            }
+        }
+
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+        bar.addView(title, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        bar.addView(close)
+
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.addView(bar)
+        root.addView(popup, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+
+        val dialog = android.app.Dialog(this, android.R.style.Theme_DeviceDefault_Light_NoActionBar)
+        dialog.setContentView(root)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (event.action == KeyEvent.ACTION_UP) {
+                    if (popup.canGoBack()) popup.goBack() else closePopupWindow()
+                }
+                true
+            } else {
+                false
+            }
+        }
+        dialog.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        )
+
+        popupWebView = popup
+        popupDialog = dialog
+
+        val transport = resultMsg.obj as WebView.WebViewTransport
+        transport.webView = popup
+        resultMsg.sendToTarget()
+        dialog.show()
+        return true
+    }
+
+    private fun closePopupWindow() {
+        val dialog = popupDialog
+        val popup = popupWebView
+        popupDialog = null
+        popupWebView = null
+        try {
+            dialog?.dismiss()
+        } catch (e: Exception) {
+            // Activity já finalizando - nada a fazer.
+        }
+        if (popup != null) {
+            popup.stopLoading()
+            (popup.parent as? android.view.ViewGroup)?.removeView(popup)
+            popup.destroy()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // O toggle de cookies de terceiros vive nas Configurações (outra
+        // Activity): reaplica na WebView ao voltar.
+        CookiePrefsManager.apply(this, webView)
+    }
+
+    override fun onPause() {
+        // Grava os cookies em disco - mantém o login se o processo morrer.
+        android.webkit.CookieManager.getInstance().flush()
+        super.onPause()
+    }
+
     override fun onDestroy() {
+        closePopupWindow() // XAULINXS_FIX_V3_LOGIN
+        exitCustomView()
         WebViewUpgrade.removeUpgradeCallback(upgradeCallback)
         super.onDestroy()
     }
@@ -1455,6 +1783,7 @@ class MainActivity : Activity() {
             // recolhe de volta pra faixa fina, igual ao comportamento
             // padrão de um drawer/overlay lateral (a barra em si nunca
             // fecha por completo, então não há "fechar" aqui de fato).
+            customView != null -> exitCustomView()
             sidebarExpanded -> collapseSidebar()
             navToolbar.visibility == View.VISIBLE && currentWebView != null && currentWebView.canGoBack() -> {
                 currentWebView.goBack()

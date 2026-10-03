@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- XAULINXS_FIX_HISTORY_CLICK: a raiz nao pode ser clickable/focusable, senao engole o toque
+     e o OnItemClickListener do ListView nunca dispara. -->
 <!--
     Item de histórico: círculo com a inicial do site (mesmo padrão do
     view_shortcut_item.xml, reaproveitado aqui) + barra retangular com
@@ -10,13 +12,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
+    android:descendantFocusability="blocksDescendants"
     android:gravity="center_vertical"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
     android:paddingTop="6dp"
     android:paddingBottom="6dp"
-    android:clickable="true"
-    android:focusable="true"
     android:background="?android:attr/selectableItemBackground">
 
     <FrameLayout
