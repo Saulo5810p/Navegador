@@ -34,4 +34,9 @@
     <string name="download_error_device_not_found">Falha: armazenamento externo não encontrado</string>
     <string name="download_error_cannot_resume">Falha: não foi possível retomar o download</string>
     <string name="download_error_http">Falha: erro de rede ao baixar o arquivo</string>
+    <!-- XAULINXS_DL_NAME_V1 -->
+    <string name="download_confirm_title">Baixar arquivo</string>
+    <string name="download_confirm_ok">Confirmar</string>
+    <string name="download_confirm_name_hint">Nome do arquivo</string>
+    <string name="download_confirm_empty_name">Digite um nome para o arquivo</string>
 </resources>

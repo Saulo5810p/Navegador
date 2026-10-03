@@ -29,12 +29,14 @@ object BrowserDownloadManager {
      * Enfileira um download via DownloadManager com os headers corretos e
      * inicia o Foreground Service que vai monitorar seu progresso.
      */
+    @JvmOverloads
     fun startDownload(
         context: Context,
         url: String,
         userAgent: String?,
         contentDisposition: String?,
-        mimeType: String?
+        mimeType: String?,
+        fileNameOverride: String? = null
     ) {
         // XAULINXS_FIX_V2: DownloadManager.Request so aceita http/https - qualquer
         // outro esquema (blob:, data:, ftp:) lancava IllegalArgumentException
@@ -50,8 +52,21 @@ object BrowserDownloadManager {
             return
         }
 
-        val resolvedMimeType = resolveMimeType(url, contentDisposition, mimeType)
-        val fileName = URLUtil.guessFileName(url, contentDisposition, resolvedMimeType)
+        // XAULINXS_DL_NAME_V1: nome vem do popup de confirmacao (ou do resolvedor).
+        val baseMimeType = resolveMimeType(url, contentDisposition, mimeType)
+        val chosenName = DownloadFileNameResolver.sanitize(
+            if (!fileNameOverride.isNullOrBlank()) fileNameOverride
+            else DownloadFileNameResolver.resolveOffline(url, contentDisposition, baseMimeType)
+        ).ifBlank { "download" }
+        val fileName = DownloadFileNameResolver.makeUnique(chosenName)
+        // Se o servidor mandou MIME generico, deduz o tipo pela extensao do nome final.
+        val resolvedMimeType = if (DownloadFileNameResolver.isGenericMime(baseMimeType)) {
+            DownloadFileNameResolver.extensionOf(fileName)?.let {
+                MimeTypeMap.getSingleton().getMimeTypeFromExtension(it)
+            } ?: baseMimeType
+        } else {
+            baseMimeType
+        }
 
         val request = DownloadManager.Request(Uri.parse(url)).apply {
             setMimeType(resolvedMimeType)

@@ -47,6 +47,7 @@ import com.xaulinxs.funcoes.SearchEngineManager
 import com.xaulinxs.funcoes.ShortcutManager
 import com.xaulinxs.funcoes.download.BrowserDownloadManager
 import com.xaulinxs.funcoes.download.BlobDownloadBridge
+import com.xaulinxs.funcoes.download.DownloadFileNameResolver
 import com.xaulinxs.aosp.browser.widget.SidebarFunction
 import com.xaulinxs.aosp.browser.widget.SidebarPrefsManager
 import com.xaulinxs.aosp.browser.widget.SidebarSizeManager
@@ -1223,25 +1224,118 @@ class MainActivity : Activity() {
         contentDisposition: String?,
         mimeType: String?
     ) {
+        // XAULINXS_DL_NAME_V1: nenhum download comeca sem o popup de confirmacao.
         try {
             val lower = url.lowercase()
-            when {
-                lower.startsWith("blob:") -> {
-                    val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
-                    webView?.evaluateJavascript(blobBridge.buildFetchScript(url, fileName), null)
+            val isBlob = lower.startsWith("blob:")
+            val isData = lower.startsWith("data:")
+            val isHttp = lower.startsWith("http://") || lower.startsWith("https://")
+
+            if (!isBlob && !isData && !isHttp) {
+                Toast.makeText(this, R.string.download_unsupported_scheme, Toast.LENGTH_SHORT).show()
+                return
+            }
+            // Evita empilhar varios popups para o mesmo link (ex.: toque duplo).
+            if (downloadDialogUrl == url) return
+            downloadDialogUrl = url
+
+            if (isHttp) {
+                // A sonda de cabecalhos usa rede: roda fora da thread principal.
+                Thread {
+                    val suggested = try {
+                        DownloadFileNameResolver.resolveBlocking(url, userAgent, contentDisposition, mimeType)
+                    } catch (e: Exception) {
+                        DownloadFileNameResolver.resolveOffline(url, contentDisposition, mimeType)
+                    }
+                    runOnUiThread {
+                        showDownloadConfirmDialog(url, suggested) { finalName ->
+                            BrowserDownloadManager.startDownload(
+                                this, url, userAgent, contentDisposition, mimeType, finalName
+                            )
+                        }
+                    }
+                }.start()
+            } else {
+                val suggested = DownloadFileNameResolver.resolveOffline(url, contentDisposition, mimeType)
+                showDownloadConfirmDialog(url, suggested) { finalName ->
+                    if (isBlob) {
+                        webView?.evaluateJavascript(blobBridge.buildFetchScript(url, finalName), null)
+                    } else {
+                        blobBridge.saveDataUri(url, finalName)
+                    }
                 }
-                lower.startsWith("data:") -> {
-                    val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
-                    blobBridge.saveDataUri(url, fileName)
-                }
-                else -> BrowserDownloadManager.startDownload(
-                    this, url, userAgent, contentDisposition, mimeType
-                )
             }
         } catch (e: Exception) {
+            downloadDialogUrl = null
             Log.e("BrowserDownload", "Falha ao iniciar download: $url", e)
             Toast.makeText(this, R.string.blob_download_failed, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /** Link cujo popup de confirmacao esta aberto (ou sendo preparado). */
+    private var downloadDialogUrl: String? = null
+
+    /**
+     * Popup de confirmacao de download: nome do arquivo editavel no topo e
+     * botoes Confirmar / Cancelar. onConfirm so roda depois do Confirmar.
+     * Mesmo padrao sem Material do resto do app (AlertDialog + EditText).
+     */
+    private fun showDownloadConfirmDialog(
+        url: String,
+        suggestedName: String,
+        onConfirm: (String) -> Unit
+    ) {
+        if (isFinishing || isDestroyed) {
+            downloadDialogUrl = null
+            return
+        }
+
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        container.setPadding(padding, padding, padding, 0)
+
+        val nameInput = EditText(this)
+        nameInput.hint = getString(R.string.download_confirm_name_hint)
+        nameInput.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+            android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        nameInput.maxLines = 3
+        nameInput.setText(suggestedName)
+        container.addView(nameInput)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.download_confirm_title)
+            .setView(container)
+            .setPositiveButton(R.string.download_confirm_ok, null)
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .setOnDismissListener { downloadDialogUrl = null }
+            .create()
+
+        dialog.setOnShowListener {
+            // Seleciona so o nome (sem a extensao) para facilitar a edicao.
+            nameInput.requestFocus()
+            val dot = suggestedName.lastIndexOf('.')
+            nameInput.setSelection(0, if (dot > 0) dot else suggestedName.length)
+            dialog.window?.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+            )
+            // Handler proprio no Confirmar: nome vazio nao fecha o popup.
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val typed = DownloadFileNameResolver.sanitize(nameInput.text.toString())
+                if (typed.isEmpty()) {
+                    Toast.makeText(this, R.string.download_confirm_empty_name, Toast.LENGTH_SHORT).show()
+                } else {
+                    dialog.dismiss()
+                    try {
+                        onConfirm(typed)
+                    } catch (e: Exception) {
+                        Log.e("BrowserDownload", "Falha ao iniciar download: $url", e)
+                        Toast.makeText(this, R.string.blob_download_failed, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+        dialog.show()
     }
 
     /**

@@ -106,8 +106,10 @@ public final class DownloadHandler {
     /** Reenfileira um download que falhou (COLUMN_URI guarda a URL original) e remove o registro antigo. */
     public static void retryDownload(Context context, DownloadEntry entry) {
         if (entry.originalUrl == null) return;
-        BrowserDownloadManager.INSTANCE.startDownload(context, entry.originalUrl, null, null, entry.mimeType);
+        // XAULINXS_DL_NAME_V1: remove o registro antigo primeiro (libera o nome do
+        // arquivo parcial) e reaproveita o nome ja confirmado pelo usuario.
         deleteDownload(context, entry);
+        BrowserDownloadManager.INSTANCE.startDownload(context, entry.originalUrl, null, null, entry.mimeType, entry.title);
     }
 
     /**
