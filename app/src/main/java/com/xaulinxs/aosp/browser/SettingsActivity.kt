@@ -62,6 +62,11 @@ class SettingsActivity : Activity() {
             requestDefaultBrowserRole()
         }
 
+        // XAULINXS_WV_RELOAD_V1
+        findViewById<TextView>(R.id.menuReloadWebView).setOnClickListener {
+            confirmReloadWebView()
+        }
+
         setupThemeSelector()
         setupZoomSlider()
         setupAdBlockSwitch()
@@ -111,6 +116,28 @@ class SettingsActivity : Activity() {
         third.setOnCheckedChangeListener { _, isChecked ->
             CookiePrefsManager.setThirdPartyEnabled(this, isChecked)
         }
+    }
+
+    // XAULINXS_WV_RELOAD_V1
+    /**
+     * Confirma e dispara a recarga do WebView embutido: apaga a copia antiga
+     * e recopia o aosp_webview.apk dos assets (o app reinicia).
+     */
+    private fun confirmReloadWebView() {
+        if (!WebViewReloader.isBundledApkAvailable(this)) {
+            Toast.makeText(this, R.string.webview_reload_missing_apk, Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.webview_reload_title)
+            .setMessage(R.string.webview_reload_message)
+            .setPositiveButton(R.string.webview_reload_confirm) { _, _ ->
+                if (!WebViewReloader.reloadAndRestart(this)) {
+                    Toast.makeText(this, R.string.webview_reload_failed, Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     private fun setupThemeSelector() {

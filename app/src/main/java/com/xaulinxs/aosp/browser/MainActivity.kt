@@ -1858,7 +1858,9 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         // Grava os cookies em disco - mantém o login se o processo morrer.
-        android.webkit.CookieManager.getInstance().flush()
+        // XAULINXS_COOKIE_EARLY_V1: via CookiePrefsManager, que não toca no
+        // CookieManager (e portanto no WebView do sistema) antes do upgrade.
+        CookiePrefsManager.flush()
         super.onPause()
     }
 

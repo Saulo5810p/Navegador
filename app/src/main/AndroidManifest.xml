@@ -148,6 +148,15 @@
             android:label="@string/adblock_list_title"
             android:exported="false" />
 
+        <!-- XAULINXS_WV_RELOAD_V1: roda em processo proprio para sobreviver
+             ao reinicio do processo principal (recarga do WebView). -->
+        <activity
+            android:name=".RestartActivity"
+            android:process=":restart"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <activity
             android:name="com.xaulinxs.funcoes.FileManagerActivity"
             android:label="File Manager"

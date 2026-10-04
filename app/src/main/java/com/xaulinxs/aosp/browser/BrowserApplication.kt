@@ -73,7 +73,16 @@ class BrowserApplication : Application() {
             // existe na lib (UpgradePathSource.delete()) e apaga tanto o
             // arquivo extraído antigo quanto a flag "já copiei", forçando
             // a lib a reextrair o apk novo de assets/ de verdade.
-            if (bundledWebViewApkChanged()) {
+            // XAULINXS_WV_RELOAD_V1: o botao "Recarregar WebView" das
+            // Configuracoes grava um pedido e reinicia o app; aqui, no
+            // processo novo e antes de qualquer uso do apk, apagamos a copia
+            // antiga (apk + libs nativas + flag "ja copiei") para o
+            // upgrade() copiar de novo o aosp_webview.apk dos assets.
+            // As duas chamadas sao avaliadas sempre (sem curto-circuito),
+            // para o fingerprint de tamanho tambem ser atualizado.
+            val forceRecopy = WebViewReloader.consumeRecopyRequest(this)
+            val apkChanged = bundledWebViewApkChanged()
+            if (forceRecopy || apkChanged) {
                 upgradeSource.delete()
             }
 

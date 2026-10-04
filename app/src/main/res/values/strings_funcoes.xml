@@ -39,4 +39,11 @@
     <string name="download_confirm_ok">Confirmar</string>
     <string name="download_confirm_name_hint">Nome do arquivo</string>
     <string name="download_confirm_empty_name">Digite um nome para o arquivo</string>
+    <!-- XAULINXS_WV_RELOAD_V1 -->
+    <string name="settings_reload_webview">Recarregar WebView (recopiar apk embutido)</string>
+    <string name="webview_reload_title">Recarregar WebView</string>
+    <string name="webview_reload_message">A cópia atual do WebView será apagada e o apk embutido no app será copiado de novo. O navegador vai reiniciar.</string>
+    <string name="webview_reload_confirm">Recarregar</string>
+    <string name="webview_reload_missing_apk">aosp_webview.apk não foi encontrado dentro do app</string>
+    <string name="webview_reload_failed">Não foi possível agendar a recópia</string>
 </resources>
